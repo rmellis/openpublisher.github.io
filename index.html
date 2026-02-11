@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Open Publisher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Acme&family=Anton&family=Architects+Daughter&family=Archivo+Black&family=Arvo:wght@400;700&family=Bangers&family=Barlow:wght@400;700&family=Bebas+Neue&family=Bitter:wght@400;700&family=Bree+Serif&family=Cabin:wght@400;700&family=Cairo:wght@400;700&family=Caveat:wght@400;700&family=Cinzel:wght@400;700&family=Comfortaa:wght@400;700&family=Comic+Neue:wght@400;700&family=Concert+One&family=Cookie&family=Courgette&family=Creepster&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=DM+Sans:wght@400;700&family=Dosis:wght@400;700&family=EB+Garamond:wght@400;700&family=Exo+2:wght@400;700&family=Fira+Sans:wght@400;700&family=Fjalla+One&family=Fredoka+One&family=Gloria+Hallelujah&family=Great+Vibes&family=Heebo:wght@400;700&family=Hind:wght@400;700&family=IBM+Plex+Sans:wght@400;700&family=Inconsolata:wght@400;700&family=Indie+Flower&family=Josefin+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&family=Karla:wght@400;700&family=Lato:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Lobster&family=Lora:wght@400;700&family=Manrope:wght@400;700&family=Maven+Pro:wght@400;700&family=Merriweather:wght@400;700&family=Monoton&family=Montserrat:wght@400;700&family=Mukta:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Noto+Sans:wght@400;700&family=Nunito:wght@400;700&family=Old+Standard+TT:wght@400;700&family=Open+Sans:wght@400;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Oxygen:wght@400;700&family=Pacifico&family=Passion+One:wght@400;700&family=Patrick+Hand&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@400;700&family=Press+Start+2P&family=Prompt:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&family=Rajdhani:wght@400;700&family=Raleway:wght@400;700&family=Righteous&family=Roboto:wght@400;700&family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&family=Roboto+Slab:wght@400;700&family=Rubik:wght@400;700&family=Sacramento&family=Satisfy&family=Shadows+Into+Light&family=Signika:wght@400;700&family=Slabo+27px&family=Source+Code+Pro:wght@400;700&family=Source+Sans+Pro:wght@400;700&family=Space+Mono:wght@400;700&family=Teko:wght@400;700&family=Titillium+Web:wght@400;700&family=Ubuntu:wght@400;700&family=Varela+Round&family=Vollkorn:wght@400;700&family=Work+Sans:wght@400;700&family=Yanone+Kaffeesatz:wght@400;700&family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="./style.css">
+
+  </head>
+    
+  <body>
+  <input type="file" id="img-upload" style="display:none" accept="image/*">
+<input type="file" id="file-open" style="display:none" accept=".json">
+
+<div class="title-bar">
+    <span class="app-title">
+        <i class="fas fa-print"></i> Open Publisher
+        <div class="undo-redo-controls">
+            <i class="fas fa-save undo-redo-btn" onclick="saveDocument()" title="Save (JSON)"></i>
+            <i class="fas fa-undo undo-redo-btn" onclick="undo()" title="Undo (Ctrl+Z)"></i>
+            <i class="fas fa-redo undo-redo-btn" onclick="redo()" title="Redo (Ctrl+Y)"></i>
+        </div>
+    </span>
+    <div class="doc-name" contenteditable="true" id="doc-title">Publication1</div>
+    <span id="coord-display">X: 0 | Y: 0</span>
+</div>
+
+<div class="ribbon-container">
+    <div class="ribbon-tabs">
+        <div class="tab file-tab" onclick="switchTab('file')">File</div>
+        <div class="tab active" onclick="switchTab('home')">Home</div>
+        <div class="tab" onclick="switchTab('insert')">Insert</div>
+        <div class="tab" onclick="switchTab('design')">Page Design</div>
+        <div class="tab" onclick="switchTab('review')">Review</div>
+        <div class="tab" onclick="switchTab('view')">View</div>
+        <div class="tab" onclick="switchTab('picture')">Picture</div>
+    </div>
+
+    <div class="ribbon-toolbar" id="ribbon-file">
+        <div class="group">
+            <div class="tool-btn" onclick="handleNewDocument()"><i class="fas fa-file"></i>New</div>
+            <div class="tool-btn" onclick="showTemplateModal()"><i class="fas fa-columns"></i>Templates</div>
+            <div class="group-label">New</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i>Save as PDF</div>
+            <div class="tool-btn" onclick="saveDocument()"><i class="fas fa-save"></i>Save Source</div>
+            <div class="tool-btn" onclick="openDocument()"><i class="fas fa-folder-open"></i>Open</div>
+            <div class="tool-btn" onclick="window.print()"><i class="fas fa-print"></i>Print</div>
+            <div class="group-label">File</div>
+        </div>
+    </div>
+
+    <div class="ribbon-toolbar active" id="ribbon-home">
+        <div class="group">
+            <div class="tool-btn" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i>Export PDF</div>
+            <div class="btn-grid" style="grid-template-columns: 1fr;">
+                <div class="mini-btn" onclick="saveDocument()" title="Save Project"><i class="fas fa-save"></i></div>
+                <div class="mini-btn" onclick="openDocument()" title="Open"><i class="fas fa-folder-open"></i></div>
+            </div>
+            <div class="group-label">Common</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="showTemplateModal()"><i class="fas fa-columns"></i>Templates</div>
+            <div class="group-label">File</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="pasteEl()"><i class="fas fa-paste"></i>Paste</div>
+            <div class="btn-grid" style="grid-template-columns: 1fr;">
+                <div class="mini-btn" onclick="copyEl()"><i class="fas fa-copy"></i></div>
+                <div class="mini-btn" onclick="copyEl()"><i class="fas fa-cut"></i></div>
+            </div>
+            <div class="group-label">Clipboard</div>
+        </div>
+        <div class="group">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <div class="font-picker-container" style="width:140px;">
+                    <div class="custom-select" id="ribbon-font-btn" onclick="toggleCustomDropdown('ribbon')">
+                        <span id="ribbon-font-label">Segoe UI</span>
+                        <i class="fas fa-caret-down" style="font-size:10px;"></i>
+                    </div>
+                    </div>
+                
+                <div style="display:flex; gap:2px; align-items: center;">
+                    <input type="number" id="font-size" class="ribbon-input" style="width:50px;" value="12" min="1" max="200" onchange="execCmd('fontSize', 7); setTrueFontSize(this.value + 'px')">
+                    
+                    <div class="mini-btn" onclick="execCmd('bold')"><i class="fas fa-bold"></i></div>
+                    <div class="mini-btn" onclick="execCmd('italic')"><i class="fas fa-italic"></i></div>
+                    <div class="mini-btn" onclick="execCmd('underline')"><i class="fas fa-underline"></i></div>
+                    <input type="color" id="text-color" style="width:25px; height:25px; border:none; padding:0; cursor:pointer;" onchange="execCmd('foreColor', this.value)" title="Text Color">
+                </div>
+            </div>
+            <div class="group-label">Font</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="selectAllElements()"><i class="fas fa-mouse-pointer"></i>Select All</div>
+             <div class="btn-grid" style="grid-template-columns: 1fr;">
+                 <div class="mini-btn" title="Find (Visual Only)"><i class="fas fa-search"></i></div>
+                 <div class="mini-btn" title="Replace (Visual Only)"><i class="fas fa-exchange-alt"></i></div>
+             </div>
+            <div class="group-label">Editing</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="bringFront()"><i class="fas fa-arrow-up"></i>Front</div>
+            <div class="tool-btn" onclick="sendBack()"><i class="fas fa-arrow-down"></i>Back</div>
+             <div class="tool-btn" onclick="deleteSelected()" style="color:#c00;"><i class="fas fa-trash-alt"></i>Delete</div>
+            <div class="group-label">Arrange</div>
+        </div>
+         <div class="group">
+            <div class="tool-btn" onclick="toggleOrientation()"><i class="fas fa-retweet"></i>Orient</div>
+            <div class="tool-btn" onclick="changeSize()"><i class="fas fa-expand"></i>Size</div>
+            <div class="group-label">Page Setup</div>
+        </div>
+    </div>
+
+    <div class="ribbon-toolbar" id="ribbon-insert">
+        <div class="group">
+            <div class="tool-btn" onclick="addTextBox()"><i class="fas fa-font"></i>Text Box</div>
+            <div class="tool-btn" onclick="triggerUpload()"><i class="fas fa-image"></i>Picture</div>
+            <div class="tool-btn" onclick="showClipartModal()"><i class="fas fa-icons"></i>Clipart</div>
+            <div class="group-label">Illustrations</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="toggleShapeMenu(this); event.stopPropagation();"><i class="fas fa-shapes"></i>Shapes <i class="fas fa-caret-down"></i></div>
+            <div class="tool-btn" onclick="showWordArtModal()"><i class="fas fa-text-width"></i>WordArt</div>
+            <div class="group-label">Graphics</div>
+        </div>
+        <div class="group">
+             <div class="tool-btn" onclick="showAdModal()"><i class="fas fa-ad"></i>Ads</div>
+             <div class="group-label">Marketing</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="toggleTableMenu(this); event.stopPropagation();"><i class="fas fa-table"></i>Table <i class="fas fa-caret-down"></i></div>
+            <div class="group-label">Tables</div>
+        </div>
+    </div>
+
+    <div class="ribbon-toolbar" id="ribbon-design">
+        <div class="group">
+            <div class="tool-btn" onclick="toggleMargins()"><i class="far fa-square"></i>Margins</div>
+            <div class="tool-btn" onclick="toggleOrientation()"><i class="fas fa-retweet"></i>Orient</div>
+             <div class="tool-btn" onclick="toggleSizeMenu(this); event.stopPropagation()"><i class="fas fa-expand"></i>Size <i class="fas fa-caret-down"></i></div>
+            <div class="group-label">Page Setup</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="toggleBorderMenu(this); event.stopPropagation();"><i class="far fa-square"></i>Borders</div>
+            <div class="tool-btn" onclick="toggleHeaderFooter()"><i class="fas fa-columns"></i>H/F Toggle</div>
+            <div class="group-label">Layout</div>
+        </div>
+        <div class="group" id="theme-group" style="width: 800px; overflow-x: auto; white-space: nowrap;">
+            <div class="group-label">Themes</div>
+        </div>
+    </div>
+
+    <div class="ribbon-toolbar" id="ribbon-review">
+        <div class="group">
+            <div class="tool-btn" onclick="toggleSpellCheck()"><i class="fas fa-spell-check"></i>Spelling</div>
+            <div class="tool-btn disabled"><i class="fas fa-book"></i>Research</div>
+            <div class="tool-btn" onclick="openThesaurus()"><i class="fas fa-book-open"></i>Thesaurus</div>
+            <div class="group-label">Proofing</div>
+        </div>
+        <div class="group">
+             <div class="tool-btn"><i class="fas fa-language"></i>Language</div>
+             <div class="group-label">Language</div>
+        </div>
+    </div>
+
+    <div class="ribbon-toolbar" id="ribbon-view">
+         <div class="group">
+            <div class="tool-btn" onclick="setZoom(0.6)"><i class="fas fa-search-minus"></i>60%</div>
+            <div class="tool-btn" onclick="setZoom(0.75)"><i class="fas fa-search-minus"></i>75%</div>
+            <div class="tool-btn" onclick="setZoom(1.0)"><i class="fas fa-search"></i>100%</div>
+            <div class="tool-btn" onclick="setZoom(1.5)"><i class="fas fa-search-plus"></i>150%</div>
+            <div class="group-label">Zoom</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="toggleMargins()"><i class="far fa-square"></i>Margins</div>
+            <div class="tool-btn" onclick="toggleRulers()"><i class="fas fa-ruler-combined"></i>Rulers</div>
+            <div class="tool-btn" onclick="toggleGrid()"><i class="fas fa-border-all"></i>Grid</div>
+            <div class="tool-btn" onclick="toggleBaselines()"><i class="fas fa-bars"></i>Baselines</div>
+            <div class="group-label">Show</div>
+        </div>
+    </div>
+
+    <div class="ribbon-toolbar" id="ribbon-picture">
+        <div class="group">
+            <div class="tool-btn" onclick="triggerUpload()"><i class="fas fa-image"></i>Insert</div>
+            <div class="group-label">Insert</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="toggleRecolorMenu(this); event.stopPropagation();"><i class="fas fa-tint"></i>Recolor <i class="fas fa-caret-down"></i></div>
+            <div class="tool-btn" onclick="applyImgFilter('brightness(1.2) contrast(1.2)')"><i class="fas fa-sun"></i>Corrections</div>
+            <div class="tool-btn" onclick="applyImgFilter('none')"><i class="fas fa-undo"></i>Reset</div>
+            <div class="group-label">Adjust</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" id="crop-btn" onclick="toggleCrop()"><i class="fas fa-crop-alt"></i>Crop</div>
+            <div class="group-label">Crop</div>
+        </div>
+        <div class="group">
+            <div class="tool-btn" onclick="rotateSelectedImage()"><i class="fas fa-retweet"></i>Rotate</div>
+            <div class="tool-btn" onclick="bringFront()"><i class="fas fa-arrow-up"></i>Front</div>
+            <div class="tool-btn" onclick="sendBack()"><i class="fas fa-arrow-down"></i>Back</div>
+            <div class="tool-btn" onclick="deleteSelected()" style="color:#c00;"><i class="fas fa-trash-alt"></i>Delete</div>
+            <div class="group-label">Arrange</div>
+        </div>
+    </div>
+</div>
+
+<div class="custom-dropdown" id="ribbon-font-list"></div>
+
+<div id="float-toolbar" onmousedown="if(event.target.tagName !== 'SELECT' && event.target.tagName !== 'INPUT' && !event.target.closest('.custom-select')) event.preventDefault()">
+    <div class="font-picker-container" style="width:130px; margin-right:4px;">
+         <div class="custom-select" id="float-font-btn" onclick="toggleCustomDropdown('float')">
+             <span id="float-font-label">Segoe UI</span>
+             <i class="fas fa-caret-down" style="font-size:10px;"></i>
+         </div>
+         <div class="custom-dropdown" id="float-font-list"></div>
+    </div>
+    
+    <select id="float-size" oninput="setFloatSize(this.value)" style="width: 50px;">
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12" selected>12</option>
+        <option value="14">14</option>
+        <option value="16">16</option>
+        <option value="18">18</option>
+        <option value="20">20</option>
+        <option value="24">24</option>
+        <option value="28">28</option>
+        <option value="32">32</option>
+        <option value="36">36</option>
+        <option value="48">48</option>
+        <option value="72">72</option>
+    </select>
+    
+    <div class="separator"></div>
+    <div class="mini-btn" onclick="execFloatCmd('bold')"><i class="fas fa-bold"></i></div>
+    <div class="mini-btn" onclick="execFloatCmd('italic')"><i class="fas fa-italic"></i></div>
+    <div class="mini-btn" onclick="execFloatCmd('underline')"><i class="fas fa-underline"></i></div>
+    <input type="color" id="float-color" style="width:20px;height:20px;border:none;padding:0;cursor:pointer;" onchange="execFloatCmd('foreColor', this.value)">
+    <div class="separator"></div>
+    <div class="mini-btn" onclick="execFloatCmd('justifyLeft')"><i class="fas fa-align-left"></i></div>
+    <div class="mini-btn" onclick="execFloatCmd('justifyCenter')"><i class="fas fa-align-center"></i></div>
+    <div class="mini-btn" onclick="execFloatCmd('justifyRight')"><i class="fas fa-align-right"></i></div>
+</div>
+
+<div class="dropdown-menu" id="table-dropdown" style="width: 220px; padding: 10px;">
+    <div id="table-grid-label" style="text-align:center; margin-bottom:5px; font-size:12px;">0 x 0 Table</div>
+    <div id="table-picker-grid" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;"></div>
+    
+    <div style="margin-top: 5px; padding: 5px; background: #f0f0f0; text-align: center; cursor: pointer; border: 1px solid #ccc; font-size: 12px;" onclick="promptCustomTable()">
+        Insert Custom Table...
+    </div>
+</div>
+
+<div class="dropdown-menu" id="shape-dropdown" style="width:350px;">
+    <div class="dropdown-grid" id="shape-grid"></div>
+    <div style="font-size:10px; padding:5px; border-top:1px solid #ccc; background:#eee; font-weight:bold;">Outlines & Symbols</div>
+    <div class="dropdown-grid" id="shape-grid-outline"></div>
+</div>
+
+<div class="dropdown-menu" id="size-dropdown" style="width:150px;">
+    <div class="dropdown-item" style="width:100%; justify-content:flex-start; padding-left:10px;" onclick="setPageSize('A4')">A4 (210x297mm)</div>
+    <div class="dropdown-item" style="width:100%; justify-content:flex-start; padding-left:10px;" onclick="setPageSize('Letter')">Letter (8.5x11")</div>
+    <div class="dropdown-item" style="width:100%; justify-content:flex-start; padding-left:10px;" onclick="changeSize()">Custom...</div>
+</div>
+
+<div class="dropdown-menu" id="recolor-dropdown">
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('none')"><div class="dropdown-item-preview" style="background:#ddd;"></div>No Recolor</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('grayscale(100%)')"><div class="dropdown-item-preview" style="background:gray;"></div>Grayscale</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(100%)')"><div class="dropdown-item-preview" style="background:#704214;"></div>Sepia</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(1) hue-rotate(310deg) saturate(3)')"><div class="dropdown-item-preview" style="background:red;"></div>Red Tint</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(1) hue-rotate(180deg) saturate(3)')"><div class="dropdown-item-preview" style="background:blue;"></div>Blue Tint</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(1) hue-rotate(90deg) saturate(3)')"><div class="dropdown-item-preview" style="background:green;"></div>Green Tint</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(1) hue-rotate(240deg) saturate(3)')"><div class="dropdown-item-preview" style="background:purple;"></div>Purple Tint</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(1) hue-rotate(140deg) saturate(3)')"><div class="dropdown-item-preview" style="background:teal;"></div>Teal Tint</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('sepia(1) hue-rotate(30deg) saturate(5)')"><div class="dropdown-item-preview" style="background:orange;"></div>Orange Tint</div>
+    <div style="padding:5px; cursor:pointer; display:flex; align-items:center;" onclick="applyImgFilter('invert(100%)')"><div class="dropdown-item-preview" style="background:black;"></div>Invert</div>
+</div>
+
+<div class="dropdown-menu" id="border-dropdown" style="width: 280px;">
+    <div class="dropdown-grid" style="grid-template-columns: 1fr;">
+        <div style="padding:5px; cursor:pointer;" onclick="setPageBorder('none')">None</div>
+        <div style="padding:5px; border:1px solid #000; cursor:pointer;" onclick="setPageBorder('solid')">Solid</div>
+        <div style="padding:5px; border:3px double #000; cursor:pointer;" onclick="setPageBorder('double')">Double</div>
+        <div style="padding:5px; border:2px dashed #000; cursor:pointer;" onclick="setPageBorder('dashed')">Dashed</div>
+        
+        <div style="padding:5px; cursor:pointer; font-size:12px; font-weight:bold; border-top:1px solid #ccc; background:#eee;">Fancy Borders</div>
+         <div style="padding:5px; cursor:pointer; display:flex; gap:5px;" onclick="setPageBorder('fancy-deco')">🏛️ Art Deco</div>
+         <div style="padding:5px; cursor:pointer; display:flex; gap:5px;" onclick="setPageBorder('fancy-cert')">📜 Certificate</div>
+         <div style="padding:5px; cursor:pointer; display:flex; gap:5px;" onclick="setPageBorder('fancy-double')">══ Double Line</div>
+         <div style="padding:5px; cursor:pointer; display:flex; gap:5px;" onclick="setPageBorder('fancy-antique')">⚜️ Antique Frame</div>
+         <div style="padding:5px; cursor:pointer; display:flex; gap:5px;" onclick="setPageBorder('fancy-modern')">🔲 Modern Box</div>
+         <div style="padding:5px; cursor:pointer; display:flex; gap:5px;" onclick="setPageBorder('fancy-floral')">🌿 Floral Corner</div>
+    </div>
+</div>
+
+<div class="workspace">
+    <div id="sidebar-toggle-trigger" onclick="toggleSidebar()"><i class="fas fa-chevron-right"></i></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-collapse-btn" onclick="toggleSidebar(true)"><i class="fas fa-angle-double-left"></i></div>
+        <div class="page-add-btn" onclick="addNewPage()"><i class="fas fa-plus"></i> Add Page</div>
+    </div>
+
+    <div class="canvas-area" id="canvas-area">
+        <div class="ruler-c"></div>
+        <div class="ruler-h" id="ruler-h"></div>
+        <div class="ruler-v" id="ruler-v"></div>
+        
+        <div class="viewport" id="viewport">
+            <div id="paper">
+                <div class="margin-guides" id="margin-guides"></div>
+                <div class="page-border-container" id="page-border"></div>
+                <div class="page-header" contenteditable="true">Header (Type here)</div>
+                <div class="page-footer" contenteditable="true">Footer (Type here)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="height:25px; background:var(--pub-color); color:white; display:flex; align-items:center; padding:0 10px; font-size:11px; justify-content:space-between;" class="status-bar">
+    <span id="status-msg">Ready</span>
+    <span id="page-count-status">Page 1 of 1</span>
+</div>
+
+<div class="modal-overlay" id="clipart-modal" onclick="closeModal(this)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">Classic Clipart <span style="float:right;cursor:pointer" onclick="document.getElementById('clipart-modal').style.display='none'">&times;</span></div>
+        <div class="gallery-grid" id="clipart-grid"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="wordart-modal" onclick="closeModal(this)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">WordArt Gallery <span style="float:right;cursor:pointer" onclick="document.getElementById('wordart-modal').style.display='none'">&times;</span></div>
+        <div class="gallery-grid" id="wordart-grid" style="grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 10px; background: #fafafa;"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="ad-modal" onclick="closeModal(this)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">Advertisement Templates <span style="float:right;cursor:pointer" onclick="document.getElementById('ad-modal').style.display='none'">&times;</span></div>
+        <div class="gallery-grid" id="ad-grid" style="grid-template-columns: repeat(4, 1fr);"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="template-modal" onclick="closeModal(this)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">Publication Templates <span style="float:right;cursor:pointer" onclick="document.getElementById('template-modal').style.display='none'">&times;</span></div>
+        <div class="template-cats" id="template-cats"></div>
+        <div class="gallery-grid" id="template-grid" style="grid-template-columns: repeat(3, 1fr);"></div>
+    </div>
+</div>
+
+<div id="font-preloader" style="position:fixed; top:-9999px; left:-9999px; visibility:hidden; pointer-events:none;"></div>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'></script><script  src="./script.js"></script>
+
+  </body>
+  
+</html>
