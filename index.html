@@ -59,6 +59,17 @@
   }
 }
 </script>
+<script>
+  // This is the "Auto-Stretch" bridge
+  const syncSize = () => {
+    document.documentElement.style.width = window.innerWidth + 'px';
+    document.body.style.width = window.innerWidth + 'px';
+  };
+  window.addEventListener('resize', syncSize);
+  window.addEventListener('load', syncSize);
+  // Force it every second just in case NW.js misses the event
+  setInterval(syncSize, 1000);
+</script>
 </head>
 
   <body>
