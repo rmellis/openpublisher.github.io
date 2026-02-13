@@ -141,7 +141,7 @@ body {
 #theme-group {
     width: 800px; 
     overflow-x: auto; 
-    white-space: nowrap; 
+    white-space: nowrap;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -647,17 +647,4 @@ td, th {
     .margin-guides, .resize-handle, .rotate-handle, .rotate-stick { display: none !important; }
     .page-header.visible, .page-footer.visible { display: flex !important; }
     .page-header:not(.visible), .page-footer:not(.visible) { display: none !important; }
-}
-
-/* --- NW.JS RESIZE FIX --- */
-/* This media query detects the 'standalone' display mode used by NW.js and Electron.
-   It overrides the fixed constraints for the body and root containers. */
-@media all and (display-mode: standalone) {
-    html, body {
-        width: 100vw !important;
-        height: 100vh !important;
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
 }
