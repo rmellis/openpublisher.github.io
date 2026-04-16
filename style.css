@@ -648,3 +648,105 @@ td, th {
     .page-header.visible, .page-footer.visible { display: flex !important; }
     .page-header:not(.visible), .page-footer:not(.visible) { display: none !important; }
 }
+/* --- CUSTOM DRAGGABLE MODAL SYSTEM --- */
+.custom-dialog-overlay {
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.4);
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 9999;
+    backdrop-filter: blur(2px); /* Win 11 style glass effect */
+}
+
+.custom-dialog {
+    background: #fff; 
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    width: 300px; 
+    max-width: 90vw; 
+    display: flex; 
+    flex-direction: column;
+    position: relative; /* Essential for dragging */
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+.custom-dialog-header {
+    background: var(--pub-color); 
+    color: #fff;
+    padding: 10px 15px; 
+    font-weight: 600; 
+    font-size: 14px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    cursor: grab; /* Shows it's draggable */
+    user-select: none;
+}
+
+.custom-dialog-header:active {
+    cursor: grabbing;
+}
+
+.custom-dialog-close {
+    cursor: pointer; 
+    padding: 0 5px; 
+}
+
+.custom-dialog-close:hover {
+    color: #ffcccc;
+}
+
+.custom-dialog-body {
+    padding: 20px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px;
+    font-size: 14px;
+}
+
+.custom-dialog-footer {
+    padding: 10px 20px 20px; 
+    display: flex; 
+    justify-content: flex-end; 
+    gap: 10px;
+}
+
+/* Modal Input Styling */
+.custom-dialog .input-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.custom-dialog input[type="number"] {
+    padding: 6px 10px; 
+    border: 1px solid #ccc; 
+    border-radius: 4px; 
+    width: 120px;
+    font-family: inherit;
+}
+
+.custom-dialog input[type="number"]:focus { 
+    outline: 2px solid var(--pub-color); 
+    border-color: transparent;
+}
+
+/* Modal Buttons */
+.custom-dialog button {
+    padding: 8px 16px; 
+    border: none; 
+    border-radius: 4px; 
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-secondary { background: #eee; color: #333; }
+.btn-secondary:hover { background: #e0e0e0; }
+
+.btn-primary { background: var(--pub-color); color: white; }
+.btn-primary:hover { background: var(--pub-dark); }

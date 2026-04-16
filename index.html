@@ -73,7 +73,7 @@
 </head>
 
   <body>
-  <input type="file" id="img-upload" style="display:none" accept="image/*">
+<input type="file" id="img-upload" style="display:none" accept="image/*">
 <input type="file" id="file-open" style="display:none" accept=".json">
 
 <div class="title-bar">
@@ -146,7 +146,7 @@
                     </div>
                 
                 <div style="display:flex; gap:2px; align-items: center;">
-                    <input type="number" id="font-size" class="ribbon-input" style="width:50px;" value="12" min="1" max="200" onchange="execCmd('fontSize', 7); setTrueFontSize(this.value + 'px')">
+                    <input type="number" id="font-size" class="ribbon-input" style="width:50px;" value="12" min="1" max="200" onchange="setTrueFontSize(this.value + 'px')">
                     
                     <div class="mini-btn" onclick="execCmd('bold')"><i class="fas fa-bold"></i></div>
                     <div class="mini-btn" onclick="execCmd('italic')"><i class="fas fa-italic"></i></div>
