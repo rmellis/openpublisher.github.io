@@ -3685,6 +3685,119 @@ window.initWordArt = function() {
     }
 };
 /* =========================================================================
+   DRAG AND DROP MEDIA & SAVE FILES ADDON
+   ========================================================================= */
+(function initDragAndDrop() {
+    const dropZone = document.body; // Allows dropping files anywhere on the screen
+
+    // 1. Prevent the browser from opening the file in a new tab
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // 2. Add a subtle visual cue when hovering a file over the window
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            document.body.style.opacity = '0.8'; // Dims the background slightly
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            document.body.style.opacity = '1'; // Restores opacity
+        }, false);
+    });
+
+    // 3. Handle the actual file drop
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files && files.length > 0) {
+            handleFiles(files, e.clientX, e.clientY);
+        }
+    }, false);
+
+    function handleFiles(files, mouseX, mouseY) {
+        // Calculate the exact drop coordinates relative to the paper (accounting for zoom)
+        const paperEl = document.getElementById('paper');
+        const rect = paperEl.getBoundingClientRect();
+        const zoom = state.zoom || 1.0;
+        
+        // Default to top-left if dropped outside the paper, otherwise use exact mouse position
+        let dropX = 50;
+        let dropY = 50;
+        
+        if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
+            dropX = (mouseX - rect.left) / zoom;
+            dropY = (mouseY - rect.top) / zoom;
+        }
+
+        // Process each dropped file
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            // --- A. Handle Open Publisher Save Files (.json) ---
+            if (fileName.endsWith('.json') || file.type === 'application/json') {
+                reader.onload = (evt) => {
+                    try {
+                        const data = JSON.parse(evt.target.result);
+                        document.getElementById('doc-title').innerText = data.title || 'Publication';
+                        state.pages = data.pages;
+                        state.currentPageIndex = 0;
+                        renderPage(state.pages[0]);
+                        setTimeout(() => {
+                            updateThumbnails();
+                            pushHistory(); 
+                        }, 500);
+                        if(typeof DialogSystem !== 'undefined') DialogSystem.alert('Success', 'Project loaded successfully!');
+                    } catch(err) {
+                        if(typeof DialogSystem !== 'undefined') DialogSystem.alert('Error', "Could not read project file: " + err);
+                    }
+                };
+                reader.readAsText(file);
+            } 
+            
+            // --- B. Handle MS Publisher Files (.pub, .pubx) ---
+            else if (fileName.endsWith('.pub') || fileName.endsWith('.pubx')) {
+                if(typeof DialogSystem !== 'undefined') {
+                    DialogSystem.alert(
+                        'Feature Coming Soon!', 
+                        'Microsoft Publisher (.pub / .pubx) support is currently in development!<br><br>Because it is a closed-source format, reverse-engineering the files takes some extra time, but we are actively working on adding this in a future update!'
+                    );
+                }
+            }
+
+            // --- C. Handle Images (.jpg, .png, .gif, .svg, .webp) ---
+            else if (file.type.startsWith('image/')) {
+                reader.onload = (evt) => {
+                    // Inject the image using your existing wrapper logic
+                    const imgHtml = `<img src="${evt.target.result}" style="width:100%; height:100%; object-fit:stretch; position:absolute; top:0; left:0;">`;
+                    const newEl = createWrapper(imgHtml);
+                    
+                    // Move the newly created element directly under the user's mouse pointer
+                    newEl.style.left = dropX + 'px';
+                    newEl.style.top = dropY + 'px';
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // --- D. Reject Unsupported Files ---
+            else {
+                if(typeof DialogSystem !== 'undefined') {
+                    DialogSystem.alert('Unsupported File', 'You can only drop Images (.jpg, .png, .svg, .webp) or Open Publisher Save Files (.json).');
+                }
+            }
+        });
+    }
+})();
+/* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
 
