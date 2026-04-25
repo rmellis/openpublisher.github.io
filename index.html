@@ -78,8 +78,8 @@
 
   <body>
 <input type="file" id="img-upload" style="display:none" accept="image/*">
-<input type="file" id="file-open" style="display:none" accept=".json">
-
+<input type="file" id="file-open" style="display:none" accept=".json, .pub, .pubx, .doc, .docx">
+<input type="file" id="document-upload" style="display:none" accept=".pub, .doc, .docx" onchange="handleFileUpload(event)">
 <div class="title-bar">
     <span class="app-title">
         <i class="fas fa-print"></i> Open Publisher
@@ -114,7 +114,7 @@
             <div class="tool-btn" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i>Save as PDF</div>
             <div class="tool-btn" onclick="saveDocument()"><i class="fas fa-save"></i>Save Source</div>
             <div class="tool-btn" onclick="openDocument()"><i class="fas fa-folder-open"></i>Open</div>
-            <div class="tool-btn" onclick="window.print()"><i class="fas fa-print"></i>Print</div>
+            <div class="tool-btn" onclick="printFullDocument()"><i class="fas fa-print"></i>Print</div>
             <div class="group-label">File</div>
         </div>
     </div>

@@ -750,3 +750,70 @@ td, th {
 
 .btn-primary { background: var(--pub-color); color: white; }
 .btn-primary:hover { background: var(--pub-dark); }
+/* =========================================================================
+   PRINT SPOOLER STYLES (ZOOM BOX-MODEL FIX)
+   ========================================================================= */
+@page {
+    margin: 0mm; 
+    size: auto;
+}
+
+@media print {
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important; 
+        min-height: 100% !important;
+        background-color: white !important;
+        
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    body > :not(#op-print-spooler) {
+        display: none !important;
+    }
+    
+    #op-print-spooler {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        
+        /* Kills invisible whitespace gaps between divs */
+        font-size: 0; 
+        line-height: 0;
+    }
+
+    .op-print-page {
+        position: relative; 
+        margin: 0 auto !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: hidden !important; 
+        
+        /* THE MAGIC BULLET: Zoom physically shrinks the box model AND absolute coordinates proportionately! */
+        zoom: 0.98 !important; 
+        
+        /* Strict Page Breaking */
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* Switch to BEFORE instead of AFTER. This guarantees the last page never forces an empty sheet! */
+    .op-print-page + .op-print-page {
+        break-before: page !important;
+        page-break-before: always !important;
+    }
+}
+
+@media screen {
+    #op-print-spooler {
+        display: none !important;
+    }
+}
