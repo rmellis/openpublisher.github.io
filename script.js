@@ -4042,17 +4042,23 @@ window.renderPage = function(page) {
 /* =========================================================================
    OPENPUBLISHER ADDON: Unifide Orientation (noflicker)
    ========================================================================= */
+// 1. Global registry to remember which pages we've already auto-fixed.
+// This ensures we NEVER fight the user if they manually click the Orient button later!
+window._orientedPagesRegistry = window._orientedPagesRegistry || new Set();
 
-// --- 1. MAIN CANVAS ENGINE (Watches the workspace) ---
+// --- MAIN CANVAS ENGINE ---
 setInterval(() => {
     if (!state.pages || state.pages.length === 0) return;
 
     const currentPage = state.pages[state.currentPageIndex];
+    if (!currentPage || !currentPage.id) return;
     
-    if (currentPage && !currentPage._smartOriented) {
-        currentPage._smartOriented = true; 
+    // 2. If we haven't checked this specific page yet, check it!
+    if (!window._orientedPagesRegistry.has(currentPage.id)) {
+        window._orientedPagesRegistry.add(currentPage.id); // Lock it permanently for this session
         
         const bgEl = currentPage.elements.find(e => e.imgSrc && e.imgSrc.startsWith('data:image'));
+        
         if (bgEl) {
             const img = new Image();
             img.onload = function() {
@@ -4079,56 +4085,140 @@ setInterval(() => {
                         paperEl.style.height = currentPage.height;
                     }
                     if (typeof window.renderPage === 'function') window.renderPage(currentPage);
-                    // Force the thumbnails to regenerate so the Observer below catches them!
                     if (typeof window.updateThumbnails === 'function') window.updateThumbnails(); 
                 }
             };
             img.src = bgEl.imgSrc;
         }
     }
-    
-    // Safety Catch: Instantly corrects the paper if clicking between pages resets it
-    const paperEl = document.getElementById('paper');
-    if (paperEl && currentPage && paperEl.style.width !== currentPage.width) {
-        paperEl.style.width = currentPage.width;
-        paperEl.style.height = currentPage.height;
-    }
-}, 50);
+    // NOTE: The aggressive 50ms "Safety Catch" that was fighting your button has been removed!
+}, 100);
 
-// --- 2. THUMBNAIL ENGINE (MutationObserver: Fires BEFORE the screen paints) ---
-const thumbObserver = new MutationObserver(() => {
-    if (!state.pages || state.pages.length === 0) return;
-    
-    const thumbs = document.querySelectorAll('.page-thumb, .thumbnail, .thumb, .sidebar-thumb, .thumb-item');
-    
-    thumbs.forEach((thumbNode, index) => {
-        const pageData = state.pages[index];
-        if (!pageData) return;
+// --- THUMBNAIL ENGINE (MutationObserver) ---
+// Added a safety check to ensure it only boots up once, preventing double-bouncing!
+if (!window._thumbObserverRunning) {
+    const thumbObserver = new MutationObserver(() => {
+        if (!state.pages || state.pages.length === 0) return;
+        
+        const thumbs = document.querySelectorAll('.page-thumb, .thumbnail, .thumb, .sidebar-thumb, .thumb-item');
+        
+        thumbs.forEach((thumbNode, index) => {
+            const pageData = state.pages[index];
+            if (!pageData) return;
 
-        const pW = parseFloat(pageData.width) || 794;
-        const pH = parseFloat(pageData.height) || 1123;
-        const expectedRatio = `${pW} / ${pH}`;
+            const pW = parseFloat(pageData.width) || 794;
+            const pH = parseFloat(pageData.height) || 1123;
+            const expectedRatio = `${pW} / ${pH}`;
 
-        // Only apply CSS if it's currently wrong. 
-        if (thumbNode.style.aspectRatio !== expectedRatio) {
-            thumbNode.style.aspectRatio = expectedRatio;
-            thumbNode.style.height = "auto";
-        }
-
-        // Ensure the image inside scales cleanly without stretching
-        const innerElements = thumbNode.querySelectorAll('canvas, img');
-        innerElements.forEach(el => {
-            if (el.style.objectFit !== "contain") {
-                el.style.width = "100%";
-                el.style.height = "100%";
-                el.style.objectFit = "contain";
+            if (thumbNode.style.aspectRatio !== expectedRatio) {
+                thumbNode.style.aspectRatio = expectedRatio;
+                thumbNode.style.height = "auto";
             }
+
+            const innerElements = thumbNode.querySelectorAll('canvas, img');
+            innerElements.forEach(el => {
+                if (el.style.objectFit !== "contain") {
+                    el.style.width = "100%";
+                    el.style.height = "100%";
+                    el.style.objectFit = "contain";
+                }
+            });
         });
     });
-});
 
-// Start watching the body for any new thumbnails being drawn
-thumbObserver.observe(document.body, { childList: true, subtree: true });
+    thumbObserver.observe(document.body, { childList: true, subtree: true });
+    window._thumbObserverRunning = true; // Lock the observer
+}/* =========================================================================
+   OPENPUBLISHER ADDON: THE UNIFIED ORIENTATION ENGINE (MANUAL-OVERRIDE SAFE)
+   ========================================================================= */
+
+// 1. Global registry to remember which pages we've already auto-fixed.
+// This ensures we NEVER fight the user if they manually click the Orient button later!
+window._orientedPagesRegistry = window._orientedPagesRegistry || new Set();
+
+// --- MAIN CANVAS ENGINE ---
+setInterval(() => {
+    if (!state.pages || state.pages.length === 0) return;
+
+    const currentPage = state.pages[state.currentPageIndex];
+    if (!currentPage || !currentPage.id) return;
+    
+    // 2. If we haven't checked this specific page yet, check it!
+    if (!window._orientedPagesRegistry.has(currentPage.id)) {
+        window._orientedPagesRegistry.add(currentPage.id); // Lock it permanently for this session
+        
+        const bgEl = currentPage.elements.find(e => e.imgSrc && e.imgSrc.startsWith('data:image'));
+        
+        if (bgEl) {
+            const img = new Image();
+            img.onload = function() {
+                let needsFix = false;
+                
+                if (img.width > img.height) { 
+                    if (currentPage.width !== "1123px") {
+                        currentPage.width = "1123px";
+                        currentPage.height = "794px";
+                        needsFix = true;
+                    }
+                } else { 
+                    if (currentPage.width !== "794px") {
+                        currentPage.width = "794px";
+                        currentPage.height = "1123px";
+                        needsFix = true;
+                    }
+                }
+
+                if (needsFix) {
+                    const paperEl = document.getElementById('paper');
+                    if (paperEl) {
+                        paperEl.style.width = currentPage.width;
+                        paperEl.style.height = currentPage.height;
+                    }
+                    if (typeof window.renderPage === 'function') window.renderPage(currentPage);
+                    if (typeof window.updateThumbnails === 'function') window.updateThumbnails(); 
+                }
+            };
+            img.src = bgEl.imgSrc;
+        }
+    }
+    // NOTE: The aggressive 50ms "Safety Catch" that was fighting your button has been removed!
+}, 100);
+
+// --- THUMBNAIL ENGINE (MutationObserver) ---
+// Added a safety check to ensure it only boots up once, preventing double-bouncing!
+if (!window._thumbObserverRunning) {
+    const thumbObserver = new MutationObserver(() => {
+        if (!state.pages || state.pages.length === 0) return;
+        
+        const thumbs = document.querySelectorAll('.page-thumb, .thumbnail, .thumb, .sidebar-thumb, .thumb-item');
+        
+        thumbs.forEach((thumbNode, index) => {
+            const pageData = state.pages[index];
+            if (!pageData) return;
+
+            const pW = parseFloat(pageData.width) || 794;
+            const pH = parseFloat(pageData.height) || 1123;
+            const expectedRatio = `${pW} / ${pH}`;
+
+            if (thumbNode.style.aspectRatio !== expectedRatio) {
+                thumbNode.style.aspectRatio = expectedRatio;
+                thumbNode.style.height = "auto";
+            }
+
+            const innerElements = thumbNode.querySelectorAll('canvas, img');
+            innerElements.forEach(el => {
+                if (el.style.objectFit !== "contain") {
+                    el.style.width = "100%";
+                    el.style.height = "100%";
+                    el.style.objectFit = "contain";
+                }
+            });
+        });
+    });
+
+    thumbObserver.observe(document.body, { childList: true, subtree: true });
+    window._thumbObserverRunning = true; // Lock the observer
+}
 /* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
