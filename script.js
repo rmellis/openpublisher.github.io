@@ -7083,6 +7083,97 @@ if (!window._thumbObserverRunning) {
     }
 })();
 /* =========================================================================
+   UI FEATURE: Dynamic Page Format Indicator (A4 vs Letter) - TOOLTIP & THIN
+   ========================================================================= */
+(function initFormatIndicator() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #op-format-indicator {
+            position: fixed;
+            top: 12px;   
+            right: 140px; 
+            z-index: 99999;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            /* pointer-events: none; REMOVED so the hover tooltip works */
+            cursor: help; /* Changes cursor to a question mark on hover */
+            opacity: 0.9;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        /* Automatically hide the indicator on smaller screens */
+        @media (max-width: 900px) {
+            #op-format-indicator {
+                display: none !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    const oldIndicator = document.getElementById('op-format-indicator');
+    if (oldIndicator) oldIndicator.remove(); 
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'op-format-indicator';
+    
+    // NATIVE HTML TOOLTIP (Shows when hovered)
+    indicator.title = "To change the page size, click 'Size' in the Home tab.";
+    
+    document.body.appendChild(indicator);
+
+    // Reduced stroke-width to 0.8 for ultra-thin, delicate lines
+    const svgA4 = `
+        <svg width="30" height="35" viewBox="0 0 24 28" style="display:block;">
+            <path d="M 2 28 L 2 4 C 2 2.9 2.9 2 4 2 L 20 2 C 21.1 2 22 2.9 22 4 L 22 28" fill="none" stroke="#cbd5e1" stroke-width="0.8"/>
+            <text x="12" y="18" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#cbd5e1" text-anchor="middle">A4</text>
+        </svg>
+    `;
+
+    const svgLetter = `
+        <svg width="40" height="35" viewBox="0 0 32 28" style="display:block;">
+            <path d="M 2 28 L 2 4 C 2 2.9 2.9 2 4 2 L 28 2 C 29.1 2 30 2.9 30 4 L 30 28" fill="none" stroke="#cbd5e1" stroke-width="0.8"/>
+            <text x="16" y="17" font-family="Arial, sans-serif" font-size="6.5" font-weight="bold" fill="#cbd5e1" text-anchor="middle">LETTER</text>
+        </svg>
+    `;
+
+    indicator.innerHTML = svgA4;
+
+    window.setPageFormatIcon = function(format) {
+        if (format.toLowerCase() === 'letter') {
+            indicator.innerHTML = svgLetter;
+        } else {
+            indicator.innerHTML = svgA4;
+        }
+        indicator.style.transform = 'scale(1.1)';
+        setTimeout(() => { indicator.style.transform = 'scale(1)'; }, 150);
+    };
+
+    const originalLoad = window.loadTemplate;
+    if (typeof originalLoad === 'function' && !window._formatHooked) {
+        window._formatHooked = true;
+        window.loadTemplate = function(t) {
+            originalLoad(t);
+            if (t.w && t.w > 800) {
+                window.setPageFormatIcon('Letter');
+            } else {
+                window.setPageFormatIcon('A4');
+            }
+        };
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target) return;
+        const text = e.target.textContent || e.target.innerText || '';
+        const cleanText = text.trim().toLowerCase();
+        if (cleanText === 'letter' || cleanText === 'us letter') {
+            window.setPageFormatIcon('Letter');
+        } else if (cleanText === 'a4') {
+            window.setPageFormatIcon('A4');
+        }
+    });
+})();
+/* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
 
