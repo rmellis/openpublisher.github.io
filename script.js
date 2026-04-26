@@ -5523,6 +5523,256 @@ if (!window._thumbObserverRunning) {
 
 })();
 /* =========================================================================
+   WordArt Extention pack 1 (Styles 61 - 200)
+   140 Pure CSS Styles: High-Contrast Edition (Glares & Blurs Fixed)
+   ========================================================================= */
+(function initWordArtExpansion() {
+    
+    // 1. INJECT THE MASSIVE CSS PAYLOAD
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* --- 61-68: THE METALS & MINERALS --- */
+        .wa-style-61 { background: linear-gradient(to bottom, #fcf6ba, #bf953f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #8a6327; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); } 
+        .wa-style-62 { background: linear-gradient(to bottom, #e0e0e0, #9e9e9e, #3e3e3e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #666; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); } 
+        .wa-style-63 { background: linear-gradient(to right, #b76e79, #e0bfb8, #b76e79); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #91515b; } 
+        .wa-style-64 { background: linear-gradient(to bottom, #cd7f32, #f3d0a9, #8c4b14); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #5e310a; } 
+        .wa-style-65 { background: linear-gradient(135deg, #24c6dc, #514a9d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #1a1548; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); } 
+        .wa-style-66 { background: linear-gradient(135deg, #ff0844, #ffb199); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #8a0020; } 
+        .wa-style-67 { background: linear-gradient(135deg, #11998e, #38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #0b665e; } 
+        .wa-style-68 { background: linear-gradient(135deg, #8e2de2, #4a00e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #2a0080; } 
+        
+        /* --- 69-73: THE NEONS --- */
+        .wa-style-69 { color: #fff; -webkit-text-stroke: 1px #ff00de; text-shadow: 0 0 6px #ff00de, 0 0 2px #ff00de; } 
+        .wa-style-70 { color: #fff; -webkit-text-stroke: 1px #00e5ff; text-shadow: 0 0 6px #00e5ff, 0 0 2px #00e5ff; } 
+        .wa-style-71 { color: #fff; -webkit-text-stroke: 1px #39ff14; text-shadow: 0 0 6px #39ff14, 0 0 2px #39ff14; } 
+        .wa-style-72 { color: #fff; -webkit-text-stroke: 1px #ffea00; text-shadow: 0 0 6px #ffea00, 0 0 2px #ffea00; } 
+        .wa-style-73 { color: #fff; -webkit-text-stroke: 1px #ff0000; text-shadow: 0 0 6px #ff0000, 0 0 2px #ff0000; } 
+
+        /* --- 74-80: 3D EXTRUSIONS --- */
+        .wa-style-74 { color: #f1c40f; -webkit-text-stroke: 1px #e67e22; text-shadow: 1px 1px 0 #e67e22, 2px 2px 0 #e67e22, 3px 3px 0 #e67e22, 4px 4px 0 #d35400, 5px 5px 0 #d35400; } 
+        .wa-style-75 { color: #3498db; -webkit-text-stroke: 1px #2980b9; text-shadow: 1px 1px 0 #2980b9, 2px 2px 0 #2980b9, 3px 3px 0 #2980b9, 4px 4px 0 #2c3e50, 5px 5px 0 #2c3e50; } 
+        .wa-style-76 { color: #2ecc71; -webkit-text-stroke: 1px #27ae60; text-shadow: 1px 1px 0 #27ae60, 2px 2px 0 #27ae60, 3px 3px 0 #27ae60, 4px 4px 0 #16a085, 5px 5px 0 #16a085; } 
+        .wa-style-77 { color: #e74c3c; -webkit-text-stroke: 1px #c0392b; text-shadow: 1px 1px 0 #c0392b, 2px 2px 0 #c0392b, 3px 3px 0 #c0392b, 4px 4px 0 #922b21, 5px 5px 0 #922b21; } 
+        .wa-style-78 { color: #fff; text-shadow: -2px 0 0 #ff00de, 2px 0 0 #00e5ff; -webkit-text-stroke: 1px #000; } 
+        .wa-style-79 { color: #ff00a0; -webkit-text-stroke: 2px #fff; text-shadow: 3px 3px 0px #00e5ff; } 
+        .wa-style-80 { background: linear-gradient(to bottom, #ff00a0, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(3px 3px 0px #222); } 
+
+        /* --- 81-90: THE GRADIENTS --- */
+        .wa-style-81 { background: linear-gradient(to right, #ff9966, #ff5e62); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-82 { background: linear-gradient(to right, #00c6ff, #0072ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-83 { background: linear-gradient(to right, #f79d00, #64f38c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-84 { background: linear-gradient(to right, #f953c6, #b91d73); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-85 { background: linear-gradient(to right, #12c2e9, #c471ed, #f64f59); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-86 { background: linear-gradient(to right, #83a4d4, #b6fbff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-87 { background: linear-gradient(to right, #f12711, #f5af19); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-88 { background: linear-gradient(to right, #654ea3, #eaafc8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-89 { background: linear-gradient(to right, #11998e, #38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.15)); }
+        .wa-style-90 { background: repeating-linear-gradient(45deg, #000 0px, #000 10px, #ffeb3b 10px, #ffeb3b 20px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.4)); } 
+
+        /* --- 91-110: STROKES & SPECIAL FX --- */
+        .wa-style-91 { color: #fff; -webkit-text-stroke: 2px #000; text-shadow: 4px 4px 0px #000; } 
+        .wa-style-92 { color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0px 4px 0px #000; } 
+        .wa-style-93 { color: #eef; -webkit-text-stroke: 1px #0055ff; text-shadow: 3px 3px 0px #0022aa; } 
+        .wa-style-94 { color: #e74c3c; -webkit-text-stroke: 2px #fff; text-shadow: 0px 0px 0px #fff, 3px 3px 0px #000; } 
+        .wa-style-95 { color: #3498db; -webkit-text-stroke: 2px #fff; text-shadow: 0px 0px 0px #fff, 3px 3px 0px #000; } 
+        .wa-style-96 { color: transparent; -webkit-text-stroke: 1px #777; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); } 
+        .wa-style-97 { color: #111; -webkit-text-stroke: 1px #ff0000; text-shadow: 3px 3px 0px #4a0000; } 
+        .wa-style-98 { background: radial-gradient(circle, #ddd 20%, #444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px #000); } 
+        .wa-style-99 { color: #f4f4f4; -webkit-text-stroke: 1px #ddd; text-shadow: -1px -1px 1px #fff, 2px 2px 2px #bbb; } 
+        .wa-style-100 { color: #00ff00; -webkit-text-stroke: 1px #003300; text-shadow: 2px 2px 0px #002200; } 
+        .wa-style-101 { color: #fff; text-shadow: 3px 3px 0 #ff0055, -3px -3px 0 #00ffcc; -webkit-text-stroke: 1px #000; } 
+        .wa-style-102 { background: repeating-linear-gradient(0deg, #ff0000 0%, #ffff00 25%, #00ff00 50%, #0000ff 75%, #ff00ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px #000); } 
+        .wa-style-103 { color: #2c3e50; -webkit-text-stroke: 2px #fff; filter: drop-shadow(2px 4px 0px rgba(0,0,0,0.2)); } 
+        .wa-style-104 { color: #f39c12; text-shadow: 2px 2px 0 #c0392b, 4px 4px 0 #8e44ad; -webkit-text-stroke: 1px #000; } 
+        .wa-style-105 { color: #fff; -webkit-text-stroke: 1px #aaa; text-shadow: 1px 1px 0px #ccc, 2px 2px 0px #bbb, 3px 3px 0px #aaa, 4px 4px 0px #999, 5px 5px 0px #888, 6px 6px 0px rgba(0,0,0,0.3); } 
+        .wa-style-106 { background: linear-gradient(to right, #8a2387, #e94057, #f27121); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #551222; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); } 
+        .wa-style-107 { background: linear-gradient(to right, #222, #555); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.4)); } 
+        .wa-style-108 { color: #fff; -webkit-text-stroke: 2px #8e44ad; text-shadow: 3px 3px 0px #f1c40f, 4px 4px 0px #000; } 
+        .wa-style-109 { background: repeating-linear-gradient(45deg, #e74c3c 0px, #e74c3c 10px, #fff 10px, #fff 20px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #801d12; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.3)); } 
+        .wa-style-110 { background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px #000); } 
+
+        /* --- 111-120: CYBERPUNK & SCI-FI --- */
+        .wa-style-111 { color: #0ff; -webkit-text-stroke: 1px #005555; text-shadow: 2px 0 0 #f0f, -2px 0 0 #00f; } 
+        .wa-style-112 { background: repeating-linear-gradient(180deg, #0f0 0px, #0f0 2px, transparent 2px, transparent 4px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 3px #0f0); } 
+        .wa-style-113 { background: repeating-linear-gradient(180deg, #0ff 0px, #0ff 2px, transparent 2px, transparent 4px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 3px #0ff); } 
+        .wa-style-114 { color: #fff; -webkit-text-stroke: 2px #0ff; text-shadow: 0 0 8px #0ff; } /* Fixed LightSaber: Crisp instead of blurry */
+        .wa-style-115 { color: #000; -webkit-text-stroke: 1px #0f0; text-shadow: 4px 4px 0 #050; } 
+        .wa-style-116 { background: linear-gradient(180deg, #fff 50%, #0ff 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-117 { background: linear-gradient(180deg, #f0f 50%, #0ff 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(2px 2px 0 #000); } 
+        .wa-style-118 { color: transparent; -webkit-text-stroke: 2px #f00; filter: drop-shadow(0 0 4px #f00); } 
+        .wa-style-119 { color: #222; text-shadow: -1px -1px 0 #555, 1px 1px 0 #000; -webkit-text-stroke: 1px #111; } 
+        .wa-style-120 { background: radial-gradient(circle, #fff, #0ff, #00f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #00aaff; } 
+
+        /* --- 121-130: FOOD & CANDY --- */
+        .wa-style-121 { background: linear-gradient(to bottom, #ff4e50, #f9d423); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #a82424; } 
+        .wa-style-122 { background: linear-gradient(to bottom, #ff9a9e, #fecfef); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #c75a80; } 
+        .wa-style-123 { background: linear-gradient(to bottom, #56ab2f, #a8e063); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #2d6b14; } 
+        .wa-style-124 { background: linear-gradient(to bottom, #ff0844, #ffb199); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #8a0020; text-shadow: 2px 2px 0px #000; } 
+        .wa-style-125 { background: linear-gradient(to bottom, #f12711, #f5af19); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(2px 2px 0 #000); } 
+        .wa-style-126 { background: linear-gradient(180deg, #ff4b2b 40%, #fff 50%, #4776e6 60%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-127 { background: linear-gradient(to right, #ffb347, #ffcc33); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #cc6600; } 
+        .wa-style-128 { background: repeating-linear-gradient(45deg, #ffb6c1 0px, #ffb6c1 10px, #fff 10px, #fff 20px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #ff69b4; } 
+        .wa-style-129 { background: linear-gradient(to bottom, #8e2de2, #4a00e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(2px 2px 0px #2a0080); } 
+        .wa-style-130 { background: linear-gradient(to bottom, #ff5f6d, #ffc371); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #c73844; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); } 
+
+        /* --- 131-140: NATURE & ELEMENTS --- */
+        .wa-style-131 { background: linear-gradient(to bottom, #11998e, #38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #074741; filter: drop-shadow(2px 2px 0px #000); } 
+        .wa-style-132 { background: linear-gradient(to bottom, #2980b9, #6dd5fa, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #14496b; } 
+        .wa-style-133 { background: linear-gradient(to bottom, #8e9eab, #eef2f3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #5a6670; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.5)); } 
+        .wa-style-134 { background: linear-gradient(to bottom, #ba8b02, #181818); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-135 { background: linear-gradient(to right, #ed4264, #ffedbc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #91162d; } 
+        .wa-style-136 { background: linear-gradient(to bottom, #4b1248, #f0c27b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #2b0829; } 
+        .wa-style-137 { background: linear-gradient(to bottom, #403a3e, #be5869); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #1a1719; } 
+        .wa-style-138 { background: linear-gradient(to bottom, #000000, #0f9b0f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(0 0 5px #0f9b0f); } 
+        .wa-style-139 { background: linear-gradient(to bottom, #e0eafc, #cfdef3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #8a9bb3; } 
+        .wa-style-140 { background: linear-gradient(to bottom, #870000, #190a05); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; text-shadow: 2px 2px 0px #000; } 
+
+        /* --- 141-150: PATTERNS & PRINTS --- */
+        .wa-style-141 { background: repeating-linear-gradient(90deg, #000 0px, #000 5px, #fff 5px, #fff 10px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-142 { background: repeating-radial-gradient(circle, #000 0px, #000 4px, #ffcc00 4px, #ffcc00 8px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-143 { background: repeating-linear-gradient(45deg, #000 0px, #000 8px, #ff0000 8px, #ff0000 16px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(2px 2px 0px #000); } 
+        .wa-style-144 { background: repeating-linear-gradient(135deg, #333 0px, #333 10px, #555 10px, #555 20px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px #000); } 
+        .wa-style-145 { background: repeating-linear-gradient(0deg, #111 0px, #111 2px, #fff 2px, #fff 4px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-146 { background: repeating-radial-gradient(circle, #ff00a0 0px, #ff00a0 5px, #00e5ff 5px, #00e5ff 10px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; } 
+        .wa-style-147 { background: repeating-linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-148 { background: repeating-linear-gradient(45deg, #fff 0px, #fff 5px, #000 5px, #000 6px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-149 { background: repeating-linear-gradient(90deg, #444 0px, #444 15px, #222 15px, #222 30px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px #ffea00); } 
+        .wa-style-150 { background: repeating-radial-gradient(ellipse, #000 0%, #000 10%, transparent 10%, transparent 20%), #fff; -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+
+        /* --- 151-160: GLASS, UI & ELEGANCE --- */
+        .wa-style-151 { color: transparent; -webkit-text-stroke: 1px #bbb; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3)); } /* Fixed Glassmorphism */
+        .wa-style-152 { color: #f0f0f0; text-shadow: -1px -1px 2px rgba(0,0,0,0.5); -webkit-text-stroke: 1px #ccc; filter: drop-shadow(1px 1px 0px #fff); } 
+        .wa-style-153 { color: #222; text-shadow: 0px 1px 1px #fff; -webkit-text-stroke: 1px #111; } 
+        .wa-style-154 { background: linear-gradient(to right, #d4af37, #ffdf00, #d4af37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(1px 1px 4px rgba(212, 175, 55, 0.4)); } 
+        .wa-style-155 { color: transparent; -webkit-text-stroke: 1px #333; text-shadow: 1px 1px 0 #fff, 2px 2px 0 #333; } 
+        .wa-style-156 { color: #111; -webkit-text-stroke: 1px #eee; text-shadow: 0px 0px 8px #888, 0px 5px 5px rgba(0,0,0,0.5); } /* Fixed Eclipse: True moon shadow, no glare */
+        .wa-style-157 { color: #fff; -webkit-text-stroke: 2px #bdc3c7; text-shadow: 3px 3px 0 #95a5a6; } 
+        .wa-style-158 { background: linear-gradient(to right, #111, #444, #111); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); } 
+        .wa-style-159 { color: #fdfbfb; -webkit-text-stroke: 1px #ebedee; filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.15)); } 
+        .wa-style-160 { color: transparent; -webkit-text-stroke: 2px #ff00de; filter: drop-shadow(2px 2px 0px #111); } 
+
+        /* --- 161-170: SOFT PASTELS & SUNSETS --- */
+        /* Note: Added subtle dark dropshadows so they pop on white paper */
+        .wa-style-161 { background: linear-gradient(to top, #ff9a9e 0%, #fecfef 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #d67a80; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-162 { background: linear-gradient(120deg, #f6d365 0%, #fda085 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #c77b5d; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-163 { background: linear-gradient(to top, #a18cd1 0%, #fbc2eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #7761a3; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-164 { background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #5fae86; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-165 { background: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #98a1a6; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.15)); } 
+        .wa-style-166 { background: linear-gradient(to top, #ffecd2 0%, #fcb69f 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #c48b77; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-167 { background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #6f9bd1; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-168 { background: linear-gradient(to top, #fddb92 0%, #d1fdff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #a4c9cb; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+        .wa-style-169 { background: linear-gradient(to right, #ffecd2 0%, #fcb69f 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px #ff9a9e); } 
+        .wa-style-170 { background: linear-gradient(to bottom, #fff1eb 0%, #ace0f9 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #7ba9be; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1)); } 
+
+        /* --- 171-180: EXTREME SHADOWS & OFFSETS --- */
+        .wa-style-171 { color: #fff; -webkit-text-stroke: 2px #000; text-shadow: 3px 3px 0 #f00, 6px 6px 0 #0f0, 9px 9px 0 #00f; } /* Smoothed RGB Echo */
+        .wa-style-172 { color: #ffeb3b; -webkit-text-stroke: 1px #000; text-shadow: -2px 2px 0 #000, -4px 4px 0 #000, -6px 6px 0 #000, -8px 8px 0 #000; } 
+        .wa-style-173 { color: #fff; -webkit-text-stroke: 2px #000; text-shadow: 0px 4px 0px #000, 0px 8px 0px #000, 0px 12px 0px #000; } 
+        .wa-style-174 { color: #00e5ff; -webkit-text-stroke: 1px #000; text-shadow: 1px -1px 0 #000, 2px -2px 0 #000, 3px -3px 0 #000, 4px -4px 0 #000, 5px -5px 0 #000; } 
+        .wa-style-175 { color: transparent; -webkit-text-stroke: 2px #000; text-shadow: 6px 6px 0px #ccc; } 
+        .wa-style-176 { color: #ff0055; -webkit-text-stroke: 1px #000; text-shadow: 4px 0 0 #00ffcc, 8px 0 0 #000; } 
+        .wa-style-177 { color: #fff; text-shadow: 0 0 0 #000, 0 0 0 #000; -webkit-text-stroke: 1px #000; filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.5)); } 
+        .wa-style-178 { color: #fff; -webkit-text-stroke: 1px #000; filter: drop-shadow(8px 8px 5px rgba(0,0,0,0.6)); } 
+        .wa-style-179 { color: #f1c40f; -webkit-text-stroke: 1px #000; text-shadow: 1px 1px 0 #000, 2px 2px 0 #000, 3px 3px 0 #000, 4px 4px 0 #000, 5px 5px 0 #000, 6px 6px 0 #000, 7px 7px 0 #000; } 
+        .wa-style-180 { color: #fff; -webkit-text-stroke: 1px #333; text-shadow: 1px 1px 0 #ccc, 2px 2px 0 #bbb, 3px 3px 0 #aaa, 4px 4px 0 #999, 5px 5px 0 #888, 6px 6px 0 #777, 7px 7px 0 #666; } 
+
+        /* --- 181-190: GRUNGE, NOISE & TOXIC --- */
+        .wa-style-181 { background: radial-gradient(circle, #555 20%, #000 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 0px #ff0000); } 
+        .wa-style-182 { color: #8b0000; -webkit-text-stroke: 1px #300000; filter: drop-shadow(0px 3px 3px rgba(139,0,0,0.6)); } 
+        .wa-style-183 { color: #a52a2a; -webkit-text-stroke: 1px #5c1616; text-shadow: 1px 1px 0px #ff7f50, 2px 2px 0px #000; } 
+        .wa-style-184 { background: repeating-linear-gradient(45deg, #222 0px, #222 5px, #000 5px, #000 10px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #ffea00; } 
+        .wa-style-185 { color: #00ff00; -webkit-text-stroke: 1px #005500; filter: drop-shadow(0px 0px 6px #00ff00); } 
+        .wa-style-186 { background: linear-gradient(to bottom, #3e5151, #decba4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #222c2c; } 
+        .wa-style-187 { color: transparent; -webkit-text-stroke: 2px #444; filter: drop-shadow(0 0 3px #000); } 
+        .wa-style-188 { color: #1a1a1a; -webkit-text-stroke: 1px #000; text-shadow: -1px -1px 0px #444, 1px 1px 0px #000; } 
+        .wa-style-189 { background: repeating-radial-gradient(circle, #333 0%, #333 10%, #111 10%, #111 20%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-190 { background: linear-gradient(to bottom, #870000, #190a05); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #f00; filter: drop-shadow(0 0 3px #f00); } 
+
+        /* --- 191-200: HYPER GRADIENTS & MASTERPIECES --- */
+        .wa-style-191 { background: linear-gradient(90deg, #ff9a9e, #fecfef, #f6d365, #fda085); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-192 { background: linear-gradient(90deg, #00c6ff, #0072ff, #12c2e9, #c471ed); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(2px 2px 0px #000); } 
+        .wa-style-193 { background: linear-gradient(90deg, #f12711, #f5af19, #f79d00, #64f38c); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-194 { background: repeating-linear-gradient(90deg, #ff00de 0px, #ff00de 10px, #00e5ff 10px, #00e5ff 20px, #ffea00 20px, #ffea00 30px); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; } 
+        .wa-style-195 { background: linear-gradient(to bottom, #fff 0%, #fff 49%, #ff00a0 50%, #ff00a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #000; filter: drop-shadow(2px 2px 0px #00e5ff); } 
+        .wa-style-196 { color: #fff; -webkit-text-stroke: 2px #ff00de; text-shadow: 3px 3px 0px #00e5ff, 6px 6px 0px #ffea00; } 
+        .wa-style-197 { background: linear-gradient(135deg, #d4af37, #ffdf00, #fff, #d4af37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #8a6327; filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.3)); } 
+        .wa-style-198 { background: radial-gradient(circle, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 2px #000; filter: drop-shadow(4px 4px 0px #000); } 
+        .wa-style-199 { background: linear-gradient(to bottom, #111, #434343); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px #fff; filter: drop-shadow(0px 0px 5px rgba(255,255,255,0.8)); } 
+        .wa-style-200 { background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet); -webkit-background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 2px #000; text-shadow: 2px 2px 0px #fff, 4px 4px 0px #000; } 
+
+        /* =========================================================================
+           EDIT-MODE LEGIBILITY OVERRIDE
+           Forces text to be plain black when actively typing in an edit box.
+           ========================================================================= */
+        .wa-text[contenteditable="true"]:focus,
+        input.wa-text, 
+        textarea.wa-text,
+        .ribbon-input.wa-text {
+            -webkit-text-fill-color: #000 !important;
+            color: #000 !important;
+            -webkit-text-stroke: 0px !important;
+            text-shadow: none !important;
+            background: #ffffff !important;
+            -webkit-background-clip: border-box !important;
+            background-clip: border-box !important;
+            outline: 2px dashed #007670 !important;
+            padding: 2px !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 2. NON-DESTRUCTIVE MODAL INJECTION
+    if (typeof window.showWordArtModal !== 'undefined') {
+        const originalWordArtModal = window.showWordArtModal;
+        
+        window.showWordArtModal = function() {
+            originalWordArtModal(); 
+            
+            const grid = document.getElementById('dialog-wordart-grid');
+            if (!grid) return;
+            
+            for(let i=61; i<=200; i++) {
+                const item = document.createElement('div'); 
+                item.className = 'gallery-item'; 
+                item.style.height = '40px'; 
+                
+                let demoText = 'Aa';
+                if ((i >= 81 && i <= 90) || (i >= 141 && i <= 150) || (i >= 191 && i <= 200)) {
+                    demoText = 'AaBb'; 
+                } else if (i === 112 || i === 113 || i === 145) {
+                    demoText = 'TXT'; 
+                }
+
+                item.innerHTML = `<div class="wa-text wa-style-${i}" style="font-size:24px; font-family: Impact, sans-serif;">${demoText}</div>`;
+                
+                item.onclick = () => {
+                    if (state.selectedEl && state.selectedEl.querySelector('.wa-text')) {
+                        const waText = state.selectedEl.querySelector('.wa-text');
+                        const classes = Array.from(waText.classList);
+                        classes.forEach(c => { if(c.startsWith('wa-style-')) waText.classList.remove(c); });
+                        waText.classList.add(`wa-style-${i}`);
+                        waText.setAttribute('spellcheck', 'false'); 
+                        DialogSystem.close(); 
+                        if(typeof syncWordArt === 'function') syncWordArt(state.selectedEl);
+                        if(typeof pushHistory === 'function') pushHistory();
+                    } else {
+                        try {
+                            const el = createWrapper(`<div class="wa-wrapper"><div class="wa-text wa-style-${i}" spellcheck="false">Word Art</div></div>`);
+                            setTimeout(() => { if(typeof syncWordArt === 'function') syncWordArt(el); }, 10);
+                        } catch(e) { console.error(e); }
+                        DialogSystem.close(); 
+                    }
+                };
+                grid.appendChild(item);
+            }
+        };
+        
+        if (typeof ContextRibbonActions !== 'undefined') {
+            ContextRibbonActions.openWordArtModal = window.showWordArtModal;
+        }
+    }
+})();
+/* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
 
