@@ -5331,6 +5331,198 @@ if (!window._thumbObserverRunning) {
     };
 })();
 /* =========================================================================
+   UNIFIED DRAGGABLE MODALS PATCH (Clean DOM Rescue Architecture)
+   ========================================================================= */
+(function initDraggableModals() {
+    
+    // 1. THE SAFE ZONE: Creates a hidden bunker to protect grids from being deleted
+    function rescueGrids() {
+        let safeZone = document.getElementById('modal-safe-zone');
+        if (!safeZone) {
+            safeZone = document.createElement('div');
+            safeZone.id = 'modal-safe-zone';
+            safeZone.style.display = 'none';
+            document.body.appendChild(safeZone);
+        }
+        const grids = ['template-cats', 'template-grid', 'clipart-grid', 'ad-grid'];
+        grids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) safeZone.appendChild(el); 
+        });
+    }
+
+    // 2. MONKEY-PATCH DIALOGSYSTEM: We intercept Show and Close to save the grids first!
+    if (typeof DialogSystem !== 'undefined' && !DialogSystem._isPatchedForGrids) {
+        const originalShow = DialogSystem.show;
+        DialogSystem.show = function() {
+            rescueGrids(); // Save grids before overwriting HTML
+            if (originalShow) originalShow.apply(this, arguments);
+        };
+
+        const originalClose = DialogSystem.close;
+        DialogSystem.close = function() {
+            rescueGrids(); // Save grids before destroying the dialog box!
+            if (originalClose) originalClose.apply(this, arguments);
+        };
+        
+        DialogSystem._isPatchedForGrids = true;
+    }
+
+    // 3. WORDART MODAL OVERRIDE
+    window.showWordArtModal = function() {
+        rescueGrids(); 
+        const html = `<div class="gallery-grid" id="dialog-wordart-grid" style="grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 10px; background: #fafafa;"></div>`;
+        DialogSystem.show('WordArt Gallery', html, null, true);
+        
+        const dialogBox = document.getElementById('custom-dialog-box');
+        if(dialogBox) {
+            dialogBox.style.width = '650px';
+            dialogBox.style.maxWidth = '95vw';
+            const body = dialogBox.querySelector('.custom-dialog-body');
+            if (body) { body.style.maxHeight = '65vh'; body.style.overflowY = 'auto'; }
+        }
+        
+        const grid = document.getElementById('dialog-wordart-grid');
+        if (!grid) return;
+        for(let i=1; i<=60; i++) {
+            const item = document.createElement('div'); 
+            item.className = 'gallery-item'; 
+            item.style.height = '40px'; 
+            item.innerHTML = `<div class="wa-text wa-style-${i}" style="font-size:24px;">Aa</div>`;
+            
+            item.onclick = () => {
+                if (state.selectedEl && state.selectedEl.querySelector('.wa-text')) {
+                    const waText = state.selectedEl.querySelector('.wa-text');
+                    const classes = Array.from(waText.classList);
+                    classes.forEach(c => { if(c.startsWith('wa-style-')) waText.classList.remove(c); });
+                    waText.classList.add(`wa-style-${i}`);
+                    waText.setAttribute('spellcheck', 'false'); 
+                    DialogSystem.close(); 
+                    if(typeof syncWordArt === 'function') syncWordArt(state.selectedEl);
+                    if(typeof pushHistory === 'function') pushHistory();
+                } else {
+                    try {
+                        const el = createWrapper(`<div class="wa-wrapper"><div class="wa-text wa-style-${i}" spellcheck="false">Word Art</div></div>`);
+                        setTimeout(() => { if(typeof syncWordArt === 'function') syncWordArt(el); }, 10);
+                    } catch(e) { console.error(e); }
+                    DialogSystem.close(); 
+                }
+            };
+            grid.appendChild(item);
+        }
+    };
+
+    if (typeof ContextRibbonActions !== 'undefined') {
+        ContextRibbonActions.openWordArtModal = window.showWordArtModal;
+    }
+
+    // 4. TEMPLATES MODAL OVERRIDE
+    if (!window._originalLoadTemplate) {
+        window._originalLoadTemplate = window.loadTemplate;
+        window.loadTemplate = function(t) {
+            DialogSystem.close(); 
+            setTimeout(() => window._originalLoadTemplate(t), 100); 
+        };
+    }
+
+    window.showTemplateModal = function() {
+        rescueGrids();
+        const cats = document.getElementById('template-cats');
+        const grid = document.getElementById('template-grid');
+        if (!cats || !grid) return; 
+
+        const html = `<div id="dialog-template-container" style="display:flex; flex-direction:column; gap:15px;"></div>`;
+        DialogSystem.show('Publication Templates', html, null, true);
+        
+        const dialogBox = document.getElementById('custom-dialog-box');
+        if(dialogBox) {
+            dialogBox.style.width = '850px';
+            dialogBox.style.maxWidth = '95vw';
+            const body = dialogBox.querySelector('.custom-dialog-body');
+            if (body) { body.style.maxHeight = '75vh'; body.style.overflowY = 'auto'; }
+        }
+        
+        const container = document.getElementById('dialog-template-container');
+        if(container) {
+            container.appendChild(cats);
+            container.appendChild(grid);
+            cats.style.display = 'flex';
+            grid.style.display = 'grid';
+        }
+    };
+
+    // 5. CLIPART MODAL OVERRIDE
+    window.showClipartModal = function() {
+        rescueGrids();
+        const grid = document.getElementById('clipart-grid');
+        if (!grid) return;
+
+        const html = `<div id="dialog-clipart-container"></div>`;
+        DialogSystem.show('Classic Clipart', html, null, true);
+        
+        const dialogBox = document.getElementById('custom-dialog-box');
+        if(dialogBox) { 
+            dialogBox.style.width = '800px'; 
+            dialogBox.style.maxWidth = '95vw'; 
+            const body = dialogBox.querySelector('.custom-dialog-body');
+            if (body) { body.style.maxHeight = '70vh'; body.style.overflowY = 'auto'; }
+        }
+        
+        const container = document.getElementById('dialog-clipart-container');
+        if (container) {
+            container.appendChild(grid);
+            grid.style.display = 'grid';
+        }
+        
+        Array.from(grid.children).forEach(item => {
+            if (item.classList.contains('gallery-item') && !item.dataset.modalHooked) {
+                const originalClick = item.onclick;
+                item.onclick = (e) => {
+                    DialogSystem.close();
+                    if(originalClick) originalClick(e);
+                };
+                item.dataset.modalHooked = 'true';
+            }
+        });
+    };
+
+    // 6. ADS MODAL OVERRIDE
+    window.showAdModal = function() {
+        rescueGrids();
+        const grid = document.getElementById('ad-grid');
+        if (!grid) return;
+
+        const html = `<div id="dialog-ad-container"></div>`;
+        DialogSystem.show('Advertisement Templates', html, null, true);
+        
+        const dialogBox = document.getElementById('custom-dialog-box');
+        if(dialogBox) { 
+            dialogBox.style.width = '700px'; 
+            dialogBox.style.maxWidth = '95vw'; 
+            const body = dialogBox.querySelector('.custom-dialog-body');
+            if (body) { body.style.maxHeight = '65vh'; body.style.overflowY = 'auto'; }
+        }
+        
+        const container = document.getElementById('dialog-ad-container');
+        if (container) {
+            container.appendChild(grid);
+            grid.style.display = 'grid';
+        }
+        
+        Array.from(grid.children).forEach(item => {
+            if (item.classList.contains('gallery-item') && !item.dataset.modalHooked) {
+                const originalClick = item.onclick;
+                item.onclick = (e) => {
+                    DialogSystem.close();
+                    if(originalClick) originalClick(e);
+                };
+                item.dataset.modalHooked = 'true';
+            }
+        });
+    };
+
+})();
+/* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
 
