@@ -3408,18 +3408,18 @@ function uploadAndConvertDoc(file) {
                 } catch(err) {
                     console.error(err);
                     DialogSystem.close();
-                    DialogSystem.alert('Error', "Failed to assemble layout from the Word document.");
+                    DialogSystem.alert('Error', "Failed to assemble layout from the Word document, if you are using CodePen, switch to https://openpublisher.app for pub, doc and docx support..");
                 }
             } else {
                 DialogSystem.close();
-                DialogSystem.alert('Error', "Conversion server failed to process the Word file.");
+                DialogSystem.alert('Error', "I dont understand, I cannot process this Word file.");
             }
         };
 
         xhr.onerror = function() {
             clearInterval(window.convertInterval);
             DialogSystem.close();
-            DialogSystem.alert('Error', "Could not connect to the conversion server.");
+            DialogSystem.alert('Error', "Could not reach the conversion server via cloudflare.");
         };
 
         xhr.send(formData);
@@ -3757,6 +3757,7 @@ function printFullDocument() {
         }, 1000); 
     }, 100);
 }
+
 /* =========================================================================
    CONTEXT MENU ADDON (DYNAMIC RIGHT-CLICK SYSTEM)
 ========================================================================= */
@@ -4684,7 +4685,7 @@ function uploadAndConvertPub(file) {
             } catch(err) {
                 console.error(err);
                 DialogSystem.close();
-                DialogSystem.alert('Error', "Failed to extract text from the document.");
+                DialogSystem.alert('Error', "Failed to extract text from the document, if you are using CodePen, switch to https://openpublisher.app for pub, doc and docx support.");
             }
         } else {
             DialogSystem.close();
@@ -4941,6 +4942,173 @@ if (!window._thumbObserverRunning) {
     thumbObserver.observe(document.body, { childList: true, subtree: true });
     window._thumbObserverRunning = true; // Lock the observer
 }
+/* =========================================================================
+   ABOUT BOX & YWA.APP SPONSOR PATCH
+   ========================================================================= */
+(function initAboutBox() {
+    // 1. Automatically inject the "About" button into the "File" ribbon tab
+    function injectButton() {
+        const fileRibbon = document.getElementById('ribbon-file');
+        if (fileRibbon && !document.getElementById('about-btn-group')) {
+            const aboutGroup = document.createElement('div');
+            aboutGroup.id = 'about-btn-group';
+            aboutGroup.className = 'group';
+            aboutGroup.innerHTML = `
+                <div class="tool-btn" onclick="window.showAboutDialog()"><i class="fas fa-info-circle"></i>About</div>
+                <div class="group-label">Info</div>
+            `;
+            fileRibbon.appendChild(aboutGroup);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectButton);
+    } else {
+        injectButton();
+    }
+
+    // 2. Render the Custom About Dialog
+    window.showAboutDialog = function() {
+        const aboutHtml = `
+            <style>
+                .about-container { font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; color: #334155; text-align: center; padding: 5px; box-sizing: border-box; width: 100%; }
+                .about-header { margin-bottom: 15px; }
+                
+                /* Increased Title & Logo Size */
+                .about-title { font-size: 30px; font-weight: 700; color: #007670; display: flex; align-items: center; justify-content: center; gap: 10px; }
+                .about-title i { font-size: 36px; }
+                
+                .about-subtitle { font-size: 13px; color: #64748b; font-weight: 500; margin-top: 4px; }
+                .about-desc { font-size: 13px; line-height: 1.5; margin-bottom: 18px; padding: 0 10px; }
+                
+                /* ywa.app Premium Sponsor Card */
+                .ywa-card {
+                    display: flex; align-items: center; gap: 15px; padding: 15px;
+                    background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px;
+                    text-align: left; transition: all 0.2s ease; margin-bottom: 5px;
+                }
+                .ywa-card:hover { border-color: #cbd5e1; background: #f1f5f9; }
+                .ywa-logo { width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; border-radius: 8px; }
+                .ywa-info { flex: 1; }
+                .ywa-title { font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 4px; }
+                .ywa-desc { font-size: 12px; color: #475569; line-height: 1.4; }
+                .ywa-link { color: #0ea5e9; text-decoration: none; font-weight: 600; transition: color 0.2s; }
+                .ywa-link:hover { text-decoration: underline; color: #0284c7; }
+
+                /* Integrated Green Donate Button */
+                .about-donate-btn {
+                    display: inline-flex; align-items: center; gap: 6px;
+                    background: #007670; color: #ffffff; padding: 6px 14px; border-radius: 4px;
+                    text-decoration: none; font-weight: 600; font-size: 13px;
+                    transition: all 0.2s; border: none; cursor: pointer; opacity: 0; 
+                }
+                .about-donate-btn:hover { background: #005a55; color: white; text-decoration: none; }
+
+                /* Footer Dev Links (GitHub & CodePen) */
+                .about-center-links { display: flex; gap: 16px; opacity: 0; align-items: center; }
+                .about-footer-link {
+                    display: inline-flex; align-items: center; gap: 6px;
+                    color: #64748b; text-decoration: none; font-size: 13.5px; font-weight: 600;
+                    transition: color 0.2s;
+                }
+                .about-footer-link:hover { color: #0f172a; text-decoration: none; }
+                .about-footer-link i { font-size: 16px; }
+            </style>
+
+            <div class="about-container">
+                <div class="about-header">
+                    <div class="about-title"><i class="fas fa-print"></i> Open Publisher</div>
+                    <div class="about-subtitle">Free Online Desktop Publishing Tool</div>
+                </div>
+                
+                <div class="about-desc">
+                    An open-source, no-signup alternative to traditional desktop publishing software. 
+                    It is <strong>100% ad-free</strong> and completely free to use. Design flyers and documents locally in your browser, with support for 
+                    <strong>.pub</strong>, <strong>.doc</strong>, and <strong>.docx</strong> files via cloud conversion.
+                </div>
+
+                <div class="ywa-card">
+                    <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/VkbZiaJ.png" alt="ywa.app Logo" class="ywa-logo">
+                    <div class="ywa-info">
+                        <div class="ywa-title">Featured on ywa.app</div>
+                        <div class="ywa-desc">
+                            Find Open Publisher and explore a network of fast, secure, and zero-install web applications at <a href="https://ywa.app" target="_blank" class="ywa-link">ywa.app</a>.
+                        </div>
+                    </div>
+                </div>
+
+                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=ltait95@yahoo.co.uk&item_name=Support+Your+Web+Apps" target="_blank" id="about-donate-btn" class="about-donate-btn">
+                    <i class="fab fa-paypal"></i> Support the Project
+                </a>
+                
+                <div id="about-center-links" class="about-center-links">
+                    <a href="https://github.com/rmellis/open-publisher" target="_blank" class="about-footer-link">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                    <a href="https://codepen.io/rmellis/pen/bNexPwL" target="_blank" class="about-footer-link">
+                        <i class="fab fa-codepen"></i> CodePen
+                    </a>
+                </div>
+            </div>
+        `;
+
+        if (typeof DialogSystem !== 'undefined') {
+            DialogSystem.init(); 
+            DialogSystem.show('About', aboutHtml, null, true);
+        }
+
+        // Bulletproof loop
+        let moveAttempts = 0;
+        const moveInterval = setInterval(() => {
+            const donateBtn = document.getElementById('about-donate-btn');
+            const centerLinks = document.getElementById('about-center-links');
+            const actionRow = document.querySelector('.custom-dialog-footer');
+            const dialogBox = document.getElementById('custom-dialog-box');
+
+            if (donateBtn && centerLinks && actionRow && dialogBox) {
+                // Lock the width so the text wraps beautifully
+                dialogBox.style.setProperty('width', '450px', 'important');
+                dialogBox.style.setProperty('max-width', '95vw', 'important');
+
+                // Adjust footer to perfectly split 3 elements: Left, Center Block, Right
+                actionRow.style.display = 'flex';
+                actionRow.style.justifyContent = 'space-between';
+                actionRow.style.alignItems = 'center';
+                actionRow.style.width = '100%';
+                
+                // Find the OK button
+                const buttons = actionRow.querySelectorAll('button');
+                let okBtn = null;
+                buttons.forEach(b => { 
+                    if (b.innerText.trim().toUpperCase() === 'OK' || b.innerText.trim().toUpperCase() === 'CLOSE') okBtn = b; 
+                });
+                if (!okBtn && buttons.length > 0) okBtn = buttons[buttons.length - 1];
+
+                // Unhide the injected elements
+                donateBtn.style.opacity = '1';
+                centerLinks.style.opacity = '1';
+                
+                // Inject them in order BEFORE the OK button: [Donate] -> [Center Block] -> [OK]
+                if (okBtn) {
+                    actionRow.insertBefore(donateBtn, okBtn);
+                    actionRow.insertBefore(centerLinks, okBtn);
+                } else {
+                    actionRow.appendChild(donateBtn);
+                    actionRow.appendChild(centerLinks);
+                }
+                
+                clearInterval(moveInterval); // Success! Stop looping.
+            }
+
+            moveAttempts++;
+            if (moveAttempts > 20) {
+                if (donateBtn) donateBtn.style.opacity = '1';
+                if (centerLinks) centerLinks.style.opacity = '1';
+                clearInterval(moveInterval);
+            }
+        }, 20); 
+    };
+})();
 /* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
