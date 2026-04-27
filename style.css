@@ -789,6 +789,23 @@ body::-webkit-scrollbar-thumb:hover,
     background: #005a55 !important; 
 }
 /* =========================================================================
+   BUG FIX: Print Renderer Line-Height Correction
+   ========================================================================= */
+@media print {
+    /* Forces all text inside the document to use dynamic, scaling line-heights */
+    #page-wrapper *, 
+    #workspace *, 
+    .canvas-container *,
+    .canvas * {
+        line-height: normal !important; 
+    }
+    
+    /* If a text box uses standard p or div tags, ensure they don't collapse */
+    p, div, span {
+        line-height: normal !important;
+    }
+}
+/* =========================================================================
    PRINT SPOOLER STYLES (ZOOM BOX-MODEL FIX)
    ========================================================================= */
 @page {
