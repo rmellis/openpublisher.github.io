@@ -7083,6 +7083,112 @@ if (!window._thumbObserverRunning) {
     }
 })();
 /* =========================================================================
+   BUG FIX: Universal Paste (Hybrid Trapdoor + Synthetic Drop)
+   ========================================================================= */
+(function initializeUniversalPaste() {
+    
+    let originalFocus = null;
+    let trapdoor = null;
+
+    // --- STEP 1: The Hybrid Trapdoor ---
+    // Browsers block native pasting into canvas elements for security. 
+    // this will intercept Ctrl+V and instantly move the cursor to a hidden text box to force a legal paste.
+    window.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+            
+            e.stopImmediatePropagation(); // Blindfold internal app logic
+            originalFocus = document.activeElement;
+
+            trapdoor = document.createElement('div');
+            trapdoor.contentEditable = 'true';
+            trapdoor.style.position = 'fixed';
+            trapdoor.style.left = '-9999px';
+            trapdoor.style.top = '0px';
+            document.body.appendChild(trapdoor);
+
+            trapdoor.focus();
+
+            // Destroy the trapdoor after the browser finishes the paste action
+            setTimeout(() => {
+                if (trapdoor && trapdoor.parentNode) {
+                    trapdoor.parentNode.removeChild(trapdoor);
+                    trapdoor = null;
+                }
+                if (originalFocus) {
+                    originalFocus.focus();
+                }
+            }, 100);
+        }
+    }, true); 
+
+    // --- STEP 2: The Synthetic Drop (Trojan Horse) ---
+    // Once the image lands in our trapdoor, we bundle it up and trick the app 
+    // into thinking the user just dragged and dropped a file onto the canvas.
+    window.addEventListener('paste', function(e) {
+        try {
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData) return;
+            
+            const items = clipboardData.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+
+                if (item.kind === 'file' && item.type.indexOf('image/') !== -1) {
+                    
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+
+                    const blob = item.getAsFile();
+                    if (!blob) continue;
+
+                    // Bundle the raw image into a fake file transfer
+                    const file = new File([blob], "pasted-image.png", { type: blob.type });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+
+                    // Build a synthetic Drag-and-Drop event
+                    const dropEvent = new DragEvent('drop', {
+                        bubbles: true,
+                        cancelable: true,
+                        dataTransfer: dataTransfer
+                    });
+
+                    // Target the main workspace to receive the drop
+                    const dropTarget = document.getElementById('workspace') || 
+                                       document.querySelector('.canvas-container') || 
+                                       document.querySelector('.canvas') || 
+                                       document.body;
+
+                    dropTarget.dispatchEvent(dropEvent);
+
+                    // Fallback: If the app engine ignores drops, force-render the image HTML
+                    setTimeout(() => {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            if (!document.querySelector('img[src^="data:image"]')) {
+                                const img = new Image();
+                                img.src = event.target.result;
+                                img.style.maxWidth = '300px';
+                                img.style.position = 'absolute';
+                                img.style.zIndex = '9999';
+                                dropTarget.appendChild(img);
+                            }
+                        };
+                        reader.readAsDataURL(blob);
+                    }, 500);
+
+                    return; 
+                }
+            }
+        } catch (err) {
+            console.error("Universal Paste Failed:", err);
+        }
+    }, true); 
+
+})();
+/* =========================================================================
    UI FEATURE: Dynamic Page Format Indicator (App Toolbar Position Fix)
    ========================================================================= */
 (function initFormatIndicator() {
