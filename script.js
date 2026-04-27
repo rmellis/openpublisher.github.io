@@ -7083,49 +7083,61 @@ if (!window._thumbObserverRunning) {
     }
 })();
 /* =========================================================================
-   BUG FIX: Universal Paste (Hybrid Trapdoor + Synthetic Drop)
+   BUG FIX: Universal Paste (The Ghost Hook Method)
    ========================================================================= */
 (function initializeUniversalPaste() {
     
-    let originalFocus = null;
-    let trapdoor = null;
+    // --- STEP 1: Fix Ribbon Buttons Stealing Focus ---
+    setTimeout(() => {
+        try {
+            const ribbonButtons = document.querySelectorAll('.paste-btn, .copy-btn, [title="Paste"], [title="Copy"], [id*="paste"], [id*="copy"]');
+            ribbonButtons.forEach(button => {
+                // Prevents buttons from deselecting your active text box/object!
+                button.addEventListener('mousedown', (e) => { e.preventDefault(); });
+            });
+        } catch (e) {}
+    }, 1000);
 
-    // --- STEP 1: The Hybrid Trapdoor ---
-    // Browsers block native pasting into canvas elements for security. 
-    // this will intercept Ctrl+V and instantly move the cursor to a hidden text box to force a legal paste.
+    // --- STEP 2: The Ghost Hook (Keydown Override) ---
     window.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
             
-            e.stopImmediatePropagation(); // Blindfold internal app logic
-            originalFocus = document.activeElement;
+            const activeEl = document.activeElement;
+            const isTextEditing = activeEl && (
+                activeEl.isContentEditable || 
+                activeEl.tagName === 'INPUT' || 
+                activeEl.tagName === 'TEXTAREA' ||
+                activeEl.closest('[contenteditable="true"]')
+            );
 
-            trapdoor = document.createElement('div');
-            trapdoor.contentEditable = 'true';
-            trapdoor.style.position = 'fixed';
-            trapdoor.style.left = '-9999px';
-            trapdoor.style.top = '0px';
-            document.body.appendChild(trapdoor);
+            // If inside a text box, let native browser text editing happen untouched
+            if (isTextEditing) return; 
 
-            trapdoor.focus();
-
-            // Destroy the trapdoor after the browser finishes the paste action
-            setTimeout(() => {
-                if (trapdoor && trapdoor.parentNode) {
-                    trapdoor.parentNode.removeChild(trapdoor);
-                    trapdoor = null;
-                }
-                if (originalFocus) {
-                    originalFocus.focus();
-                }
-            }, 100);
+            // WE ARE ON THE CANVAS.
+            // OpenPublisher will try to block the native browser paste event so it can duplicate objects.
+            // We temporarily "hook" the preventDefault command so the browser ignores it!
+            const originalPrevent = e.preventDefault;
+            e.preventDefault = function() {
+                // We swallow the app's block request. The app thinks it successfully blocked the paste,
+                // but the browser is still going to fire the native 'paste' event a millisecond later!
+            };
         }
-    }, true); 
+    }, true); // Capture phase ensures we hook it before OpenPublisher sees the keystroke
 
-    // --- STEP 2: The Synthetic Drop (Trojan Horse) ---
-    // Once the image lands in our trapdoor, we bundle it up and trick the app 
-    // into thinking the user just dragged and dropped a file onto the canvas.
+    // --- STEP 3: The Native Image Injector ---
     window.addEventListener('paste', function(e) {
+        const activeEl = document.activeElement;
+        const isTextEditing = activeEl && (
+            activeEl.isContentEditable || 
+            activeEl.tagName === 'INPUT' || 
+            activeEl.tagName === 'TEXTAREA' ||
+            activeEl.closest('[contenteditable="true"]')
+        );
+
+        if (isTextEditing) return; 
+
         try {
+            // Because we ghosted OpenPublisher, this native event fires with full, secure OS clipboard access!
             const clipboardData = e.clipboardData || window.clipboardData;
             if (!clipboardData) return;
             
@@ -7135,55 +7147,53 @@ if (!window._thumbObserverRunning) {
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
 
+                // WE FOUND AN EXTERNAL IMAGE!
                 if (item.kind === 'file' && item.type.indexOf('image/') !== -1) {
                     
+                    // Now we actually prevent the default paste so the browser doesn't do weird things
                     e.preventDefault();
                     e.stopImmediatePropagation();
 
                     const blob = item.getAsFile();
                     if (!blob) continue;
 
-                    // Bundle the raw image into a fake file transfer
                     const file = new File([blob], "pasted-image.png", { type: blob.type });
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
 
-                    // Build a synthetic Drag-and-Drop event
+                    // Execute the Trojan Drop
                     const dropEvent = new DragEvent('drop', {
-                        bubbles: true,
-                        cancelable: true,
-                        dataTransfer: dataTransfer
+                        bubbles: true, cancelable: true, dataTransfer: dataTransfer
                     });
 
-                    // Target the main workspace to receive the drop
                     const dropTarget = document.getElementById('workspace') || 
                                        document.querySelector('.canvas-container') || 
                                        document.querySelector('.canvas') || 
                                        document.body;
-
+                    
                     dropTarget.dispatchEvent(dropEvent);
 
-                    // Fallback: If the app engine ignores drops, force-render the image HTML
+                    // Fallback injector just in case the app ignores the drop
                     setTimeout(() => {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            if (!document.querySelector('img[src^="data:image"]')) {
+                        if (!document.querySelector('img[src^="data:image"]')) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
                                 const img = new Image();
-                                img.src = event.target.result;
+                                img.src = ev.target.result;
                                 img.style.maxWidth = '300px';
                                 img.style.position = 'absolute';
                                 img.style.zIndex = '9999';
                                 dropTarget.appendChild(img);
-                            }
-                        };
-                        reader.readAsDataURL(blob);
+                            };
+                            reader.readAsDataURL(blob);
+                        }
                     }, 500);
-
+                    
                     return; 
                 }
             }
         } catch (err) {
-            console.error("Universal Paste Failed:", err);
+            console.error("Ghost Hook Image injection failed:", err);
         }
     }, true); 
 
