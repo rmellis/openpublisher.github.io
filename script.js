@@ -4572,6 +4572,275 @@ window.initWordArt = function() {
 
 })();
 /* =========================================================================
+   FEATURE: Picture Format Sidebar (Restored Designer UI + Flicker Fix)
+   ========================================================================= */
+(function installSidebarImageFilters() {
+    
+    let userCollapsed = false; 
+
+    // 1. Inject YOUR Preferred Refined CSS (Untouched)
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #viewport, #workspace {
+            transition: width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+        }
+
+        #op-image-sidebar {
+            position: fixed;
+            right: 0px; 
+            top: 205px; 
+            bottom: 14px; 
+            width: 290px;
+            
+            /* 💎 SUBTLE ACRYLIC GLASS */
+            background: rgba(245, 245, 245, 0.7); 
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            
+            border-left: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+            padding: 20px 16px;
+            z-index: 99999;
+            font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+            transform: translateX(calc(100% + 50px)); 
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            scrollbar-width: none;
+        }
+        #op-image-sidebar::-webkit-scrollbar { display: none; }
+        #op-image-sidebar.visible { transform: translateX(0); }
+        
+        #op-sidebar-expander {
+            position: fixed;
+            right: 0px; top: 50%; width: 30px; height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #444; z-index: 99998;
+            transform: translateY(-50%) translateX(100%); 
+            transition: transform 0.2s;
+        }
+        #op-sidebar-expander.visible { transform: translateY(-50%) translateX(0); }
+
+        /* HEADER */
+        .op-sidebar-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; padding: 0 4px;
+        }
+        .op-sidebar-title { font-weight: 700; font-size: 15px; color: var(--pub-dark); letter-spacing: -0.2px; }
+        .op-header-btn { background: none; border: none; cursor: pointer; color: #666; font-size: 15px; transition: color 0.2s; }
+        .op-header-btn:hover { color: #000; }
+
+        /* 💥 REFINED CARDS: Soft Glass Lift */
+        .op-sidebar-section {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .op-section-label {
+            font-size: 10px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.8px; color: #777; margin-bottom: 15px; display: block;
+        }
+
+        /* SLIDER ROW */
+        .op-slider-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .op-slider-row:last-child { margin-bottom: 0; }
+        .op-slider-meta { display: flex; justify-content: space-between; align-items: center; padding: 0 2px; }
+        .op-slider-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+        .op-slider-num { font-size: 11px; font-weight: 700; color: var(--pub-color); opacity: 0.9; }
+
+        .op-sidebar-slider {
+            -webkit-appearance: none; width: 100%; background: transparent; height: 16px; cursor: pointer;
+        }
+        
+        /* 💥 SLEEK TRACKS: Visible but refined */
+        .op-sidebar-slider::-webkit-slider-runnable-track {
+            width: 100%; height: 3px; background: #999; border-radius: 2px;
+        }
+        
+        .op-sidebar-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: var(--pub-color); border: 2.5px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -6.5px;
+            transition: transform 0.1s;
+        }
+        .op-sidebar-slider:active::-webkit-slider-thumb { transform: scale(1.15); }
+        
+        /* Firefox */
+        .op-sidebar-slider::-moz-range-track { height: 3px; background: #999; border-radius: 2px; }
+        .op-sidebar-slider::-moz-range-thumb { height: 14px; width: 14px; background: var(--pub-color); border: 2.5px solid #fff; border-radius: 50%; }
+    `;
+    document.head.appendChild(style);
+
+    // 2. Inject HTML (Untouched)
+    const expander = document.createElement('div');
+    expander.id = 'op-sidebar-expander';
+    expander.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    document.body.appendChild(expander);
+
+    const panel = document.createElement('div');
+    panel.id = 'op-image-sidebar';
+    panel.innerHTML = `
+        <div class="op-sidebar-header">
+            <span class="op-sidebar-title">Format Picture</span>
+            <div class="op-sidebar-top-btns">
+                <button class="op-header-btn" id="filter-reset-btn" style="margin-right:8px" title="Reset All"><i class="fas fa-undo"></i></button>
+                <button class="op-header-btn" id="filter-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Visibility</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Transparency</span><span class="op-slider-num" id="val-transparency">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="transparency" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Light & Tone</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Brightness</span><span class="op-slider-num" id="val-brightness">100%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="brightness" min="0" max="200" value="100">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Contrast</span><span class="op-slider-num" id="val-contrast">100%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="contrast" min="0" max="200" value="100">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Color Settings</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Saturation</span><span class="op-slider-num" id="val-saturate">100%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="saturate" min="0" max="200" value="100">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Hue</span><span class="op-slider-num" id="val-hue-rotate">0°</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="hue-rotate" min="-180" max="180" value="0">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Grayscale</span><span class="op-slider-num" id="val-grayscale">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="grayscale" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Effects</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Blur</span><span class="op-slider-num" id="val-blur">0px</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="blur" min="0" max="10" value="0" step="0.5">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Sepia</span><span class="op-slider-num" id="val-sepia">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="sepia" min="0" max="100" value="0">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Invert</span><span class="op-slider-num" id="val-invert">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="invert" min="0" max="100" value="0">
+            </div>
+        </div>
+    `;
+    document.body.appendChild(panel);
+
+    // 3. Logic
+    const vp = document.getElementById('viewport') || document.getElementById('workspace');
+
+    // Helper to sync visibility based on selection and user preference
+    const refreshVisibility = (el) => {
+        if (el && el.querySelector('img')) {
+            if (userCollapsed) {
+                panel.classList.remove('visible');
+                expander.classList.add('visible');
+                if (vp) vp.style.width = '';
+            } else {
+                panel.classList.add('visible');
+                expander.classList.remove('visible');
+                if (vp) vp.style.width = 'calc(100% - 290px)';
+            }
+            // Sync slider values
+            document.querySelectorAll('.op-sidebar-slider').forEach(s => {
+                const f = s.dataset.filter;
+                const v = el.getAttribute(`data-filter-${f}`) || (['brightness','contrast','saturate'].includes(f)?100:0);
+                s.value = v; 
+                const txt = document.getElementById(`val-${f}`);
+                if(txt) txt.innerText = v + (f==='hue-rotate'?'°':f==='blur'?'px':'%');
+            });
+        } else {
+            panel.classList.remove('visible');
+            expander.classList.remove('visible');
+            if (vp) vp.style.width = '';
+        }
+    };
+
+    const apply = (el) => {
+        const img = el.querySelector('img'); if(!img) return;
+        const get = (f, d) => el.getAttribute(`data-filter-${f}`) || d;
+        img.style.filter = `brightness(${get('brightness',100)}%) contrast(${get('contrast',100)}%) saturate(${get('saturate',100)}%) hue-rotate(${get('hue-rotate',0)}deg) blur(${get('blur',0)}px) sepia(${get('sepia',0)}%) grayscale(${get('grayscale',0)}%) invert(${get('invert',0)}%)`;
+        img.style.opacity = 1 - (get('transparency',0) / 100);
+    };
+
+    document.querySelectorAll('.op-sidebar-slider').forEach(s => {
+        s.addEventListener('input', e => {
+            if(!state.selectedEl) return;
+            const f = e.target.dataset.filter, v = e.target.value;
+            state.selectedEl.setAttribute(`data-filter-${f}`, v);
+            const txt = document.getElementById(`val-${f}`);
+            if(txt) txt.innerText = v + (f==='hue-rotate'?'°':f==='blur'?'px':'%');
+            apply(state.selectedEl);
+        });
+        s.addEventListener('change', () => { if(window.pushHistory) pushHistory(); });
+    });
+
+    document.getElementById('filter-reset-btn').addEventListener('click', () => {
+        if(!state.selectedEl) return;
+        document.querySelectorAll('.op-sidebar-slider').forEach(s => {
+            const f = s.dataset.filter, d = (['brightness','contrast','saturate'].includes(f)?100:0);
+            state.selectedEl.removeAttribute(`data-filter-${f}`);
+            s.value = d; 
+            const txt = document.getElementById(`val-${f}`);
+            if(txt) txt.innerText = d + (f==='hue-rotate'?'°':f==='blur'?'px':'%');
+        });
+        apply(state.selectedEl);
+    });
+
+    document.getElementById('filter-close-btn').addEventListener('click', () => { 
+        userCollapsed = true; 
+        refreshVisibility(state.selectedEl);
+    });
+
+    document.getElementById('op-sidebar-expander').addEventListener('click', () => { 
+        userCollapsed = false; 
+        refreshVisibility(state.selectedEl);
+    });
+
+    setTimeout(() => {
+        if(window.selectElement) {
+            const oldSel = window.selectElement;
+            window.selectElement = (el) => {
+                oldSel(el);
+                // 10ms delay prevents selection race conditions/flicker
+                setTimeout(() => refreshVisibility(el), 10);
+            };
+        }
+        if(window.deselect) {
+            const oldDes = window.deselect;
+            window.deselect = () => { 
+                oldDes(); 
+                setTimeout(() => refreshVisibility(null), 10);
+            };
+        }
+    }, 1000);
+})();
+/* =========================================================================
    FEATURE: Native Ctrl+A (Select All)
    ========================================================================= */
 (function installSelectAll() {
