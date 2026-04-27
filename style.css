@@ -757,28 +757,35 @@ td, th {
 /* 1. Firefox Support */
 * {
     scrollbar-width: auto !important; 
-    
     scrollbar-color: #007670 #f1f5f9 !important; 
 }
 
-/* 2. Chrome, Edge, Safari Support */
-::-webkit-scrollbar {
+/* 2. Chrome, Edge, Safari Support (Backwards Compatible) */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
     width: 8px !important; 
     height: 8px !important; 
 }
 
-::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
     background: #f1f5f9 !important; 
     border-radius: 4px !important;
 }
 
-::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
     background: #007670 !important; 
     border-radius: 4px !important;
     border: 2px solid #f1f5f9 !important; 
 }
 
-::-webkit-scrollbar-thumb:hover {
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
     background: #005a55 !important; 
 }
 /* =========================================================================
