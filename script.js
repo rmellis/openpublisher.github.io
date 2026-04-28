@@ -8362,6 +8362,86 @@ window.handleMouseUp = function() {
 
 })();
 /* =========================================================================
+   Print spooler fix (for text boxes)
+   ========================================================================= */
+(function fixPrintSpooler() {
+
+    window.printFullDocument = function() {
+        // 1. Force a save of the current page so any text you JUST typed is included
+        if (typeof state !== 'undefined' && state.pages && state.pages.length > 0) {
+            state.pages[state.currentPageIndex] = serializeCurrentPage();
+        }
+
+        // 2. Create or find our secret print container
+        let printSpooler = document.getElementById('op-print-spooler');
+        if (!printSpooler) {
+            printSpooler = document.createElement('div');
+            printSpooler.id = 'op-print-spooler';
+            document.body.appendChild(printSpooler);
+        }
+        
+        printSpooler.innerHTML = ''; // Clear old jobs
+        
+        // 3. Loop through every page saved in the state memory
+        if (typeof state !== 'undefined' && state.pages) {
+            state.pages.forEach((page) => {
+                let pageWrapper = document.createElement('div');
+                pageWrapper.className = 'op-print-page';
+                pageWrapper.style.width = page.width;
+                pageWrapper.style.height = page.height;
+                pageWrapper.style.background = page.background || '#ffffff';
+                pageWrapper.style.position = 'relative';
+                
+                // This overrides the font-size:0 and line-height:0 from the CSS
+                // so standard textboxes actually render their text!
+                pageWrapper.style.fontSize = '16px';
+                pageWrapper.style.lineHeight = 'normal';
+
+                page.elements.forEach(el => {
+                    let elDiv = document.createElement('div');
+                    elDiv.style.position = 'absolute';
+                    elDiv.style.left = el.left;
+                    elDiv.style.top = el.top;
+                    elDiv.style.width = el.width;
+                    elDiv.style.height = el.height;
+                    elDiv.style.zIndex = el.zIndex;
+                    elDiv.style.transform = el.transform || 'none';
+                    
+                    if (el.imgSrc) {
+                        let img = document.createElement('img');
+                        img.src = el.imgSrc;
+                        if (el.imgStyle) Object.assign(img.style, el.imgStyle);
+                        elDiv.appendChild(img);
+                    } else {
+                        // Restore the scaling wrapper so resized textboxes print correctly
+                        const sX = el.scaleX || "1";
+                        const sY = el.scaleY || "1";
+                        // Strip contenteditable so the browser doesn't try to render editing cursors
+                        let cleanHTML = el.innerHTML.replace(/contenteditable="true"/g, 'contenteditable="false"');
+                        elDiv.innerHTML = `<div class="element-content" style="transform: scale(${sX}, ${sY}); width:100%; height:100%; transform-origin: top left; outline: none; border: none;">${cleanHTML}</div>`;
+                    }
+                    
+                    pageWrapper.appendChild(elDiv);
+                });
+                
+                printSpooler.appendChild(pageWrapper);
+            });
+        }
+
+        // 4. Trigger the browser's native Print Dialog
+        if (document.activeElement) document.activeElement.blur();
+        if (window.getSelection) window.getSelection().removeAllRanges();
+        
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                printSpooler.innerHTML = '';
+            }, 1000);
+        }, 150);
+    };
+
+})();
+/* =========================================================================
    INP FIX (Overrides for heavy functions)
    ========================================================================= */
 
