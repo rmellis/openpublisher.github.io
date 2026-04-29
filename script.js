@@ -4589,7 +4589,7 @@ window.initWordArt = function() {
             position: fixed;
             right: 0px; 
             top: 205px; 
-            bottom: 14px; 
+            bottom: 20px; 
             width: 290px;
             
             /* 💎 SUBTLE ACRYLIC GLASS */
@@ -4840,8 +4840,9 @@ window.initWordArt = function() {
         }
     }, 1000);
 })();
+
 /* =========================================================================
-   GLOBAL WORKSPACE SLIDE LOCK (Ruler-Safe & Future-Proof)
+   GLOBAL WORKSPACE SLIDE LOCK (Ruler-Safe & synchronized 986px)
    ========================================================================= */
 (function lockGlobalWorkspaceAnimation() {
     const viewport = document.getElementById('viewport');
@@ -4850,415 +4851,1128 @@ window.initWordArt = function() {
     const observer = new MutationObserver((mutations) => {
         let shouldSync = false;
         
-        // Only trigger the math if the element changing classes is a sidebar
         for (let m of mutations) {
-            if (m.target.id === 'op-image-sidebar' || m.target.classList.contains('sidebar-panel')) {
+            if (m.target.id === 'op-image-sidebar' || m.target.id === 'op-wordart-sidebar' || m.target.classList.contains('sidebar-panel')) {
                 shouldSync = true;
                 break;
             }
         }
 
         if (shouldSync) {
-            // Check if ANY sidebar is currently open (Catches current and future panels)
-            const activeSidebar = document.querySelector('#op-image-sidebar.visible, .sidebar-panel.visible');
+            const activeSidebar = document.querySelector('#op-image-sidebar.visible, #op-wordart-sidebar.visible, .sidebar-panel.visible');
             
- if (activeSidebar) {
-    const sidebarWidth = activeSidebar.offsetWidth || 290;
+            if (activeSidebar) {
+                const sidebarWidth = 290;
+                const screenWidth = window.innerWidth;
+                const minContentWidth = 950; 
 
-    const screenWidth = window.innerWidth;
-    const minContentWidth = 986; // tweak this threshold to make the sidebar colapse change
-
-    // Only push layout if space is tight
-    if (screenWidth < sidebarWidth + minContentWidth) {
-        viewport.style.setProperty('margin-right', sidebarWidth + 'px', 'important');
-        viewport.style.setProperty('width', `calc(100% - ${sidebarWidth}px)`, 'important');
-    } else {
-        // Plenty of room → overlay mode
-        viewport.style.setProperty('margin-right', '0px', 'important');
-        viewport.style.setProperty('width', '100%', 'important');
-    }
-} else {
-                // Reset to full width
+                if (screenWidth < sidebarWidth + minContentWidth) {
+                    viewport.style.setProperty('margin-right', sidebarWidth + 'px', 'important');
+                    viewport.style.setProperty('width', `calc(100% - ${sidebarWidth}px)`, 'important');
+                } else {
+                    viewport.style.setProperty('margin-right', '0px', 'important');
+                    viewport.style.setProperty('width', '100%', 'important');
+                }
+            } else {
                 viewport.style.setProperty('margin-right', '0px', 'important');
                 viewport.style.setProperty('width', '100%', 'important');
             }
         }
     });
 
-    // Watch the entire body, but filter purely for class changes for high performance
     observer.observe(document.body, { 
         attributes: true, 
         attributeFilter: ['class'],
         subtree: true 
     });
-})();
-/* =========================================================================
-   FEATURE: Native Ctrl+A (Select All)
-   ========================================================================= */
-(function installSelectAll() {
-    window.addEventListener('keydown', function(e) {
-        // Detect Ctrl+A or Cmd+A
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
-            
-            // 1. Are we typing inside a text box?
-            const activeEl = document.activeElement;
-            const isTextEditing = activeEl && (
-                activeEl.tagName === 'INPUT' || 
-                activeEl.tagName === 'TEXTAREA' || 
-                activeEl.isContentEditable || 
-                activeEl.closest('[contenteditable="true"]')
-            );
 
-            // If we are typing, let the browser highlight the text natively.
-            if (isTextEditing) return; 
-
-            // 2. We are on the canvas. Block the browser's default highlight!
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            const paper = document.getElementById('paper');
-            if (!paper) return;
-
-            // 3. Clear existing selections
-            if (state.selectedEl) {
-                state.selectedEl.classList.remove('selected');
-                state.selectedEl = null;
-            }
-            if (state.multiSelected) {
-                state.multiSelected.forEach(el => el.classList.remove('selected'));
-            }
-            state.multiSelected = [];
-
-            // 4. Find every valid canvas item and add it to the group array
-            const allItems = paper.querySelectorAll('.pub-element');
-            allItems.forEach(el => {
-                // Ignore UI overlays, ghost boxes, and handles
-                if (!el.className.includes('select') && !el.className.includes('handle')) {
-                    state.multiSelected.push(el);
-                    el.classList.add('selected');
-                }
-            });
-
-            // 5. Update the UI to show the bounding box
-            if (state.multiSelected.length > 0) {
-                const status = document.getElementById('status-msg');
-                if (status) status.innerText = state.multiSelected.length + " Elements Selected";
-                
-                const ft = document.getElementById('float-toolbar');
-                if (ft) ft.style.display = 'none';
-
-                if (typeof forceRepaint === 'function') forceRepaint();
-                if (typeof drawSelectionUI === 'function') drawSelectionUI();
-            }
+    window.addEventListener('resize', () => {
+        const activeSidebar = document.querySelector('#op-image-sidebar.visible, #op-wordart-sidebar.visible');
+        if (activeSidebar) {
+             const sidebarWidth = 290;
+             const screenWidth = window.innerWidth;
+             const minContentWidth = 986;
+             if (screenWidth < sidebarWidth + minContentWidth) {
+                 viewport.style.setProperty('margin-right', sidebarWidth + 'px', 'important');
+                 viewport.style.setProperty('width', `calc(100% - ${sidebarWidth}px)`, 'important');
+             } else {
+                 viewport.style.setProperty('margin-right', '0px', 'important');
+                 viewport.style.setProperty('width', '100%', 'important');
+             }
         }
-    }, true); // Capture phase ensures we beat the browser's default text highlight
+    });
 })();
+
 /* =========================================================================
-   DRAG AND DROP MEDIA & SAVE FILES ADDON
+   FEATURE: WordArt Sidebar (v4.0 - MS Office Shape Warping Engine added)
    ========================================================================= */
-(function initDragAndDrop() {
-    const dropZone = document.body; 
+(function installSidebarWordArt() {
+    let waUserCollapsed = false;
 
-    // 1. Prevent the browser from opening the file in a new tab
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults, false);
-    });
+    // Helper functions for units and defaults
+    const getDef = (f) => {
+        if(f === 'lineHeight') return 1.2;
+        if(f === 'fontWeight') return 400;
+        if(f === 'shadowX' || f === 'shadowY') return 2;
+        if(f === 'saturate') return 100; 
+        return 0;
+    };
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+    const getUnit = (f) => {
+        if (['blur', 'spacing', 'wordSpacing', 'shadowX', 'shadowY'].includes(f)) return 'px';
+        if (['opacity', 'saturate'].includes(f)) return '%';
+        if (f === 'hue') return '°';
+        if (f === 'lineHeight') return 'x';
+        return ''; 
+    };
 
-    // 2. Add a subtle visual cue when hovering a file over the window
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            document.body.style.opacity = '0.8'; 
-        }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            document.body.style.opacity = '1'; 
-        }, false);
-    });
-
-    // 3. Handle the actual file drop
-    dropZone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-
-        if (files && files.length > 0) {
-            handleFiles(files, e.clientX, e.clientY);
+    // --- CORE FEATURE: Vector Text Warping Engine ---
+    const applyWordArtShape = (target, shape) => {
+        // 1. Store the original raw text forever so we can always regenerate
+        if (!target.dataset.origText) {
+            target.dataset.origText = target.innerText.trim();
         }
-    }, false);
-
-    function handleFiles(files, mouseX, mouseY) {
-        // Calculate the exact drop coordinates relative to the paper
-        const paperEl = document.getElementById('paper');
-        const rect = paperEl.getBoundingClientRect();
-        const zoom = state.zoom || 1.0;
+        const text = target.dataset.origText;
         
-        let dropX = 50;
-        let dropY = 50;
-        
-        if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
-            dropX = (mouseX - rect.left) / zoom;
-            dropY = (mouseY - rect.top) / zoom;
+        // 2. If 'none', revert to plain text
+        if (!shape || shape === 'none') {
+            target.innerHTML = text;
+            target.style.display = 'inline-block';
+            return;
         }
 
-        // Process each dropped file
-        Array.from(files).forEach(file => {
-            const reader = new FileReader();
-            const fileName = file.name.toLowerCase();
+        // 3. Generate SVG dynamically
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.minWidth = "150px"; 
+        svg.style.minHeight = "80px";
+        svg.style.overflow = "visible"; // Prevents bounding box clipping
+        
+        const defs = document.createElementNS(svgNS, "defs");
+        const path = document.createElementNS(svgNS, "path");
+        const pathId = "wa-path-" + Math.random().toString(36).substr(2, 9);
+        path.id = pathId;
+        
+        let pathD = "";
+        if (shape === 'arch-up') {
+            svg.setAttribute("viewBox", "0 0 200 100");
+            pathD = "M 10,90 Q 100,-20 190,90"; 
+        } else if (shape === 'arch-down') {
+            svg.setAttribute("viewBox", "0 0 200 100");
+            pathD = "M 10,10 Q 100,120 190,10";
+        } else if (shape === 'circle') {
+            svg.setAttribute("viewBox", "0 0 200 200");
+            svg.style.minHeight = "150px";
+            pathD = "M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0";
+        } else if (shape === 'wave') {
+            svg.setAttribute("viewBox", "0 0 200 100");
+            pathD = "M 10,50 Q 55,0 100,50 T 190,50";
+        }
 
-            // --- A. Handle Open Publisher Save Files (.json) ---
-            if (fileName.endsWith('.json') || file.type === 'application/json') {
-                reader.onload = (evt) => {
-                    try {
-                        const data = JSON.parse(evt.target.result);
-                        document.getElementById('doc-title').innerText = data.title || 'Publication';
-                        state.pages = data.pages;
-                        state.currentPageIndex = 0;
-                        renderPage(state.pages[0]);
-                        setTimeout(() => {
-                            updateThumbnails();
-                            pushHistory(); 
-                        }, 500);
-                        if(typeof DialogSystem !== 'undefined') DialogSystem.alert('Success', 'Project loaded successfully!');
-                    } catch(err) {
-                        if(typeof DialogSystem !== 'undefined') DialogSystem.alert('Error', "Could not read project file: " + err);
-                    }
-                };
-                reader.readAsText(file);
-            } 
-            
-            // --- B. Handle Documents (.pub, .doc, .docx) ---
-            else if (fileName.endsWith('.pub') || fileName.endsWith('.pubx')) {
-                uploadAndConvertPub(file);
-            }
-            else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
-                uploadAndConvertDoc(file);
-            }
+        path.setAttribute("d", pathD);
+        path.setAttribute("fill", "transparent");
+        defs.appendChild(path);
+        svg.appendChild(defs);
 
-            // --- C. Handle Images (.jpg, .png, .gif, .svg, .webp) ---
-            else if (file.type.startsWith('image/')) {
-                reader.onload = (evt) => {
-                    const imgHtml = `<img src="${evt.target.result}" style="width:100%; height:100%; object-fit:stretch; position:absolute; top:0; left:0;">`;
-                    const newEl = createWrapper(imgHtml);
-                    
-                    newEl.style.left = dropX + 'px';
-                    newEl.style.top = dropY + 'px';
-                };
-                reader.readAsDataURL(file);
-            }
-            
-            // --- D. Reject Unsupported Files ---
-            else {
-                if(typeof DialogSystem !== 'undefined') {
-                    DialogSystem.alert('Unsupported File', 'You can only drop Images, Open Publisher Save Files (.json), or Documents (.pub, .doc, .docx).');
-                }
-            }
-        });
-    }
-})();
-// --- THE FILE UPLOAD TRAFFIC COP ---
-function handleFileUpload(event) {
-    // If it came from the input button, it's event.target.files. 
-    // If it came from drag-and-drop, it might be event.dataTransfer.files!
-    const files = event.target.files || (event.dataTransfer && event.dataTransfer.files);
-    
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    
-    // Clean up the file name just in case it has weird hidden spaces
-    const fileName = file.name.toLowerCase().trim();
-    
-    // Log it to the console so we can see exactly what the browser sees
-    console.log("Traffic Cop saw file:", fileName);
+        const textEl = document.createElementNS(svgNS, "text");
+        textEl.setAttribute("fill", "currentColor"); // Inherits your current font color!
+        textEl.style.fontFamily = "inherit";
+        textEl.style.fontSize = "26px"; // Scales appropriately to viewBox
+        textEl.style.fontWeight = "inherit";
+        textEl.style.letterSpacing = "inherit";
 
-    if (fileName.endsWith('.pub')) {
-        uploadAndConvertPub(file);
-    } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
-        uploadAndConvertDoc(file);
-    } else {
-        // This will now pop up and tell you exactly what file name it rejected!
-        DialogSystem.alert("Error", `Unsupported file type. The app saw: "${file.name}"`);
-    }
-}
-/* =========================================================================
-   PUB CONVERSION ADDON (image - Text Extraction)
-   ========================================================================= */
-function uploadAndConvertPub(file) {
-    const progressHtml = `
-        <div style="text-align:center; padding: 10px;">
-            <p id="convert-status" style="margin-bottom:15px; font-weight:bold;">Processing...</p>
-            <div style="width:100%; background:#eee; border-radius:10px; overflow:hidden; height:10px;">
-                <div id="convert-progress" style="width:0%; height:100%; background:var(--pub-color); transition: width 0.3s;"></div>
+        const textPath = document.createElementNS(svgNS, "textPath");
+        textPath.setAttribute("href", "#" + pathId);
+        textPath.setAttribute("startOffset", "50%");
+        textPath.setAttribute("text-anchor", "middle");
+        textPath.textContent = text;
+
+        textEl.appendChild(textPath);
+        svg.appendChild(textEl);
+
+        target.innerHTML = '';
+        target.appendChild(svg);
+        target.style.display = 'flex'; 
+    };
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #op-wordart-sidebar {
+            position: fixed; right: 0px; top: 205px; bottom: 20px; width: 290px;
+            background: rgba(245, 245, 245, 0.7); backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-left: 1px solid rgba(0, 0, 0, 0.1); box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+            padding: 20px 16px; z-index: 99999;
+            font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+            transform: translateX(110%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none;
+        }
+        #op-wordart-sidebar.visible { transform: translateX(0); }
+        #op-wa-sidebar-expander {
+            position: fixed; right: 0px; top: 60%; width: 30px; height: 50px;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1); border-right: none; border-radius: 8px 0 0 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #444; z-index: 99998;
+            transform: translateY(-50%) translateX(100%); transition: transform 0.2s;
+        }
+        #op-wa-sidebar-expander.visible { transform: translateY(-50%) translateX(0); }
+        
+        /* 💥 EXACT MATCH SLIDER CSS */
+        .wa-sidebar-input {
+            -webkit-appearance: none; width: 100%; background: transparent; height: 16px; cursor: pointer;
+        }
+        .wa-sidebar-input::-webkit-slider-runnable-track {
+            width: 100%; height: 3px; background: #999; border-radius: 2px;
+        }
+        .wa-sidebar-input::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: var(--pub-color); border: 2.5px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: -6.5px;
+            transition: transform 0.1s;
+        }
+        .wa-sidebar-input:active::-webkit-slider-thumb { transform: scale(1.15); }
+        
+        /* 💥 SHAPE GRID UI CSS */
+        .wa-shape-grid { display: flex; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
+        .wa-shape-btn { 
+            flex: 1; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.1); 
+            border-radius: 8px; height: 38px; cursor: pointer; transition: all 0.2s;
+            display: flex; justify-content: center; align-items: center; color: #555;
+            min-width: 40px;
+        }
+        .wa-shape-btn:hover { background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); transform: translateY(-1px); }
+        .wa-shape-btn.active { 
+            background: var(--pub-color); color: #fff; border-color: var(--pub-color); 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); transform: none; 
+        }
+        .wa-shape-btn svg { width: 22px; height: 22px; }
+    `;
+    document.head.appendChild(style);
+
+    const expander = document.createElement('div');
+    expander.id = 'op-wa-sidebar-expander';
+    expander.innerHTML = '<i class="fas fa-font"></i>';
+    document.body.appendChild(expander);
+
+    const panel = document.createElement('div');
+    panel.id = 'op-wordart-sidebar';
+    
+    panel.innerHTML = `
+        <div class="op-sidebar-header">
+            <span class="op-sidebar-title">Format WordArt</span>
+            <div class="op-sidebar-top-btns">
+                <button class="op-header-btn" id="wa-reset-btn" style="margin-right:8px" title="Reset All"><i class="fas fa-undo"></i></button>
+                <button class="op-header-btn" id="wa-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Text Shape</span>
+            <div class="wa-shape-grid" id="wa-shape-controls">
+                <button class="wa-shape-btn active" data-shape="none" title="Straight Text">
+                    <svg viewBox="0 0 24 24"><text x="12" y="16" font-size="12" text-anchor="middle" font-weight="bold" fill="currentColor">ABC</text></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="arch-up" title="Arch Up">
+                    <svg viewBox="0 0 24 24"><path d="M 4,16 Q 12,6 20,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="arch-down" title="Arch Down">
+                    <svg viewBox="0 0 24 24"><path d="M 4,8 Q 12,18 20,8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="circle" title="Circle">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="4 3"/></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="wave" title="Wave">
+                    <svg viewBox="0 0 24 24"><path d="M 3,12 Q 7.5,6 12,12 T 21,12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Color & Effects</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Hue Shift</span><span class="op-slider-num" id="val-wa-hue">0°</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="hue" min="-180" max="180" value="0" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Saturation</span><span class="op-slider-num" id="val-wa-saturate">100%</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="saturate" min="0" max="200" value="100" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Transparency</span><span class="op-slider-num" id="val-wa-opacity">0%</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="opacity" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Drop Shadow</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Shadow X</span><span class="op-slider-num" id="val-wa-shadowX">2px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="shadowX" min="-50" max="50" value="2" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Shadow Y</span><span class="op-slider-num" id="val-wa-shadowY">2px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="shadowY" min="-50" max="50" value="2" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Shadow Blur</span><span class="op-slider-num" id="val-wa-blur">0px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="blur" min="0" max="25" value="0">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Typography</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Font Weight</span><span class="op-slider-num" id="val-wa-fontWeight">400</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="fontWeight" min="100" max="900" value="400" step="100">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Letter Spacing</span><span class="op-slider-num" id="val-wa-spacing">0px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="spacing" min="-10" max="50" value="0" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Word Spacing</span><span class="op-slider-num" id="val-wa-wordSpacing">0px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="wordSpacing" min="-20" max="50" value="0" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Line Height</span><span class="op-slider-num" id="val-wa-lineHeight">1.2x</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="lineHeight" min="0.5" max="3" value="1.2" step="0.1">
             </div>
         </div>
     `;
-    
-    DialogSystem.show('Importing Publisher File', progressHtml, null, true);
-    document.getElementById('custom-dialog-confirm').style.display = 'none'; 
+    document.body.appendChild(panel);
 
-    const formData = new FormData();
-    formData.append('pubFile', file);
-
-    const xhr = new XMLHttpRequest();
-    // Connect to Cloudflare Tunnel
-    xhr.open('POST', 'https://determine-regardless-passage-occurring.trycloudflare.com/api/convert-pub', true); 
-
-    xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 40; 
-            document.getElementById('convert-progress').style.width = percentComplete + '%';
-            
-            if (percentComplete >= 40) {
-                document.getElementById('convert-status').innerText = "Decoding the publication...";
-                let fakeProgress = 40;
-                window.convertInterval = setInterval(() => {
-                    if(fakeProgress < 75) {
-                        fakeProgress += 1;
-                        document.getElementById('convert-progress').style.width = fakeProgress + '%';
-                    }
-                }, 800);
+    const refreshUI = (el) => {
+        const isWA = el && (el.classList.contains('wa-text') || el.querySelector('.wa-text') || el.closest('.wa-wrapper'));
+        if (isWA) {
+            if (waUserCollapsed) {
+                panel.classList.remove('visible');
+                expander.classList.add('visible');
+            } else {
+                panel.classList.add('visible');
+                expander.classList.remove('visible');
             }
-        }
-    };
-
-    xhr.onload = async function() {
-        clearInterval(window.convertInterval);
-        
-        if (xhr.status === 200) {
-            document.getElementById('convert-progress').style.width = '85%';
-            document.getElementById('convert-status').innerText = "Extracting Text & Rendering images...";
-            
-            try {
-                const data = JSON.parse(xhr.responseText);
+            const target = el.querySelector('.wa-text') || el.closest('.wa-text') || (el.classList.contains('wa-text') ? el : null);
+            if (target) {
+                // Update Sliders
+                panel.querySelectorAll('.wa-sidebar-input').forEach(input => {
+                    const f = input.dataset.waf;
+                    const attrVal = target.getAttribute(`data-waf-${f}`);
+                    const v = attrVal !== null ? attrVal : getDef(f);
+                    input.value = v;
+                    document.getElementById(`val-wa-${f}`).innerText = v + getUnit(f);
+                });
                 
-                // 1. Decode PDF
-                const binaryString = window.atob(data.pdfData);
-                const binaryLen = binaryString.length;
-                const bytes = new Uint8Array(binaryLen);
-                for (let i = 0; i < binaryLen; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-
-                const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-                let opPages = [];
-                const OP_PAGE_WIDTH = 794;  // OpenPublisher standard width
-                const OP_PAGE_HEIGHT = 1123; // OpenPublisher standard height
-
-                // 2. Loop through every page
-                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                    const page = await pdf.getPage(pageNum);
-                    
-                    // --- PART A: Render Background Image ---
-                    // Render at high resolution so it's crisp
-                    const viewportImage = page.getViewport({ scale: 2.0 }); 
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = viewportImage.width;
-                    canvas.height = viewportImage.height;
-                    await page.render({ canvasContext: ctx, viewport: viewportImage }).promise;
-                    const imgDataUrl = canvas.toDataURL('image/jpeg', 0.85); // 85% quality to save RAM
-
-                    let elements = [];
-                    let zIndexCounter = 1;
-
-                    // Push the flattened background layer first (Locked)
-                    elements.push({
-                        left: "0px", top: "0px", width: "100%", height: "100%",
-                        transform: "none", zIndex: (zIndexCounter++).toString(), type: "box", 
-                        innerHTML: "", imgSrc: imgDataUrl, clipPath: "", bg: "", cropMode: false,
-                        imgStyle: {
-                            width: "100%", height: "100%", top: "0px", left: "0px",
-                            position: "absolute", filter: "none", maxWidth: "none", maxHeight: "none",
-                            pointerEvents: "none" // Prevents the user from accidentally moving the background!
-                        },
-                        scaleX: "1", scaleY: "1"
-                    });
-
-                    // --- PART B: Extract Editable Text ---
-                    const textContent = await page.getTextContent();
-                    const viewportText = page.getViewport({ scale: 1.0 }); // Use 1.0 scale for accurate math
-
-                    // Calculate the ratio between the PDF size and OpenPublisher's Canvas size
-                    const scaleX = OP_PAGE_WIDTH / viewportText.width;
-                    const scaleY = OP_PAGE_HEIGHT / viewportText.height;
-
-                    textContent.items.forEach(item => {
-                        const str = item.str.trim();
-                        if (!str) return; // Ignore empty text blocks
-
-                        // pdf.js uses bottom-left origin. We must convert it to OpenPublisher's top-left origin.
-                        // item.transform array: [scaleX, skewY, skewX, scaleY, translateX, translateY]
-                        const tx = item.transform[4] * scaleX;
-                        let ty = (viewportText.height - item.transform[5]) * scaleY; 
-
-                        // Extract Font Size
-                        let fontSize = Math.abs(item.transform[3]) * scaleY;
-                        
-                        // Adjust Y coordinate up by the font size so it sits correctly on the baseline
-                        ty = ty - fontSize; 
-
-                        elements.push({
-                            left: `${tx}px`, 
-                            top: `${ty}px`, 
-                            width: `${(item.width * scaleX) + 20}px`, // Add slight padding
-                            height: `${fontSize + 10}px`,
-                            transform: "none", 
-                            zIndex: (zIndexCounter++).toString(), 
-                            type: "box", 
-                            innerHTML: `<div style="width:100%; height:100%; padding:2px; font-family:sans-serif; color:black; font-size:${fontSize.toFixed(1)}px; line-height:1;">${str}</div>`, 
-                            imgSrc: "", clipPath: "", bg: "", cropMode: false, imgStyle: {}, scaleX: "1", scaleY: "1"
-                        });
-                    });
-
-                    opPages.push({
-                        id: Date.now() + pageNum,
-                        thumb: "",
-                        width: `${OP_PAGE_WIDTH}px`, height: `${OP_PAGE_HEIGHT}px`,
-                        background: "#ffffff",
-                        header: "", footer: "", borderStyle: "none",
-                        elements: elements
-                    });
-                }
-
-                // 3. Finalize and push to UI
-                document.getElementById('convert-progress').style.width = '100%';
-                setTimeout(() => {
-                    document.getElementById('doc-title').innerText = data.title;
-                    state.pages = opPages;
-                    state.currentPageIndex = 0;
-                    renderPage(state.pages[0]);
-                    
-                    if(typeof updateThumbnails === 'function') updateThumbnails();
-                    if(typeof pushHistory === 'function') pushHistory(); 
-                    
-                    DialogSystem.close(); 
-                }, 500);
-
-            } catch(err) {
-                console.error(err);
-                DialogSystem.close();
-                DialogSystem.alert('Error', "Failed to extract text from the document, if you are using CodePen, switch to https://openpublisher.app for pub, doc and docx support.");
+                // Update Shape Buttons
+                const currentShape = target.getAttribute('data-waf-shape') || 'none';
+                panel.querySelectorAll('.wa-shape-btn').forEach(btn => {
+                    if(btn.dataset.shape === currentShape) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
             }
         } else {
-            DialogSystem.close();
-            DialogSystem.alert('Error', "I failed to process the file.");
+            panel.classList.remove('visible');
+            expander.classList.remove('visible');
         }
     };
 
-    xhr.onerror = function() {
-        clearInterval(window.convertInterval);
-        DialogSystem.close();
-        DialogSystem.alert('Error', "Could not connect to a Cloudflare server.");
+    setTimeout(() => {
+        if (window.selectElement) {
+            const originalSelect = window.selectElement;
+            window.selectElement = function(el) {
+                originalSelect.apply(this, arguments);
+                if (el && (el.querySelector('.wa-text') || el.classList.contains('wa-text'))) {
+                    document.getElementById('op-image-sidebar')?.classList.remove('visible');
+                }
+                refreshUI(el);
+            };
+        }
+        if (window.deselect) {
+            const originalDeselect = window.deselect;
+            window.deselect = function() {
+                originalDeselect.apply(this, arguments);
+                refreshUI(null);
+            };
+        }
+    }, 1500);
+
+    // Sidebar Close / Expander
+    document.getElementById('wa-close-btn').onclick = () => { waUserCollapsed = true; refreshUI(state.selectedEl); };
+    expander.onclick = () => { waUserCollapsed = false; refreshUI(state.selectedEl); };
+
+    // --- Shape Button Click Logic ---
+    panel.querySelectorAll('.wa-shape-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            if (!state.selectedEl) return;
+            const target = state.selectedEl.querySelector('.wa-text') || state.selectedEl;
+            const shape = btn.dataset.shape;
+            
+            // UI Toggle
+            panel.querySelectorAll('.wa-shape-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Set Attribute & Apply Engine
+            target.setAttribute('data-waf-shape', shape);
+            applyWordArtShape(target, shape);
+            
+            // Sync Engine
+            if (typeof syncWordArt === 'function') syncWordArt(state.selectedEl);
+            if (typeof pushHistory === 'function') pushHistory();
+        };
+    });
+
+    // Reset Button Logic
+    document.getElementById('wa-reset-btn').onclick = () => {
+        if (!state.selectedEl) return;
+        const target = state.selectedEl.querySelector('.wa-text') || state.selectedEl;
+        
+        // Reset Sliders
+        panel.querySelectorAll('.wa-sidebar-input').forEach(input => {
+            const f = input.dataset.waf;
+            const d = getDef(f);
+            target.removeAttribute(`data-waf-${f}`);
+            input.value = d;
+            document.getElementById(`val-wa-${f}`).innerText = d + getUnit(f);
+        });
+
+        // Reset Shape
+        target.removeAttribute('data-waf-shape');
+        panel.querySelectorAll('.wa-shape-btn').forEach(b => {
+            if(b.dataset.shape === 'none') b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        applyWordArtShape(target, 'none');
+
+        // Strip CSS
+        target.style.opacity = 1;
+        target.style.letterSpacing = '0px';
+        target.style.wordSpacing = '0px';
+        target.style.lineHeight = 1.2;
+        target.style.fontWeight = 400;
+        target.style.filter = '';
+        
+        if (typeof syncWordArt === 'function') syncWordArt(state.selectedEl);
+        if (typeof pushHistory === 'function') pushHistory();
     };
 
-    xhr.send(formData);
-}
+    // Slider Logic
+    panel.querySelectorAll('.wa-sidebar-input').forEach(input => {
+        input.oninput = (e) => {
+            if (!state.selectedEl) return;
+            const target = state.selectedEl.querySelector('.wa-text') || state.selectedEl;
+            const val = e.target.value;
+            const f = e.target.dataset.waf;
+            
+            target.setAttribute(`data-waf-${f}`, val);
+            document.getElementById(`val-wa-${f}`).innerText = val + getUnit(f);
+            
+            if (f === 'opacity') target.style.opacity = 1 - (val / 100);
+            if (f === 'spacing') target.style.letterSpacing = `${val}px`;
+            if (f === 'wordSpacing') target.style.wordSpacing = `${val}px`;
+            if (f === 'lineHeight') target.style.lineHeight = val;
+            if (f === 'fontWeight') target.style.fontWeight = val;
+            
+            if (['blur', 'shadowX', 'shadowY', 'hue', 'saturate'].includes(f)) {
+                const blurVal = target.getAttribute('data-waf-blur') || 0;
+                const sxVal = target.getAttribute('data-waf-shadowX') || 2;
+                const syVal = target.getAttribute('data-waf-shadowY') || 2;
+                const hueVal = target.getAttribute('data-waf-hue') || 0;
+                
+                const satAttr = target.getAttribute('data-waf-saturate');
+                const satVal = satAttr !== null ? satAttr : 100;
+                
+                let filterStr = '';
+                if (blurVal > 0 || sxVal != 0 || syVal != 0) filterStr += `drop-shadow(${sxVal}px ${syVal}px ${blurVal}px rgba(0,0,0,0.5)) `;
+                if (hueVal != 0) filterStr += `hue-rotate(${hueVal}deg) `;
+                if (satVal != 100) filterStr += `saturate(${satVal}%) `;
+                
+                target.style.filter = filterStr.trim();
+            }
+
+            if (['spacing', 'wordSpacing', 'lineHeight', 'fontWeight', 'blur', 'shadowX', 'shadowY'].includes(f)) {
+                if (typeof syncWordArt === 'function') syncWordArt(state.selectedEl);
+            }
+            if (typeof pushHistory === 'function') pushHistory();
+        };
+    });
+})();
+/* =========================================================================
+   GLOBAL WORKSPACE SLIDE LOCK (Ruler-Safe & synchronized 986px)
+   ========================================================================= */
+(function lockGlobalWorkspaceAnimation() {
+    const viewport = document.getElementById('viewport');
+    if (!viewport) return;
+
+    const observer = new MutationObserver((mutations) => {
+        let shouldSync = false;
+        
+        for (let m of mutations) {
+            if (m.target.id === 'op-image-sidebar' || m.target.id === 'op-wordart-sidebar' || m.target.classList.contains('sidebar-panel')) {
+                shouldSync = true;
+                break;
+            }
+        }
+
+        if (shouldSync) {
+            const activeSidebar = document.querySelector('#op-image-sidebar.visible, #op-wordart-sidebar.visible, .sidebar-panel.visible');
+            
+            if (activeSidebar) {
+                const sidebarWidth = 290;
+                const screenWidth = window.innerWidth;
+                const minContentWidth = 950; 
+
+                if (screenWidth < sidebarWidth + minContentWidth) {
+                    viewport.style.setProperty('margin-right', sidebarWidth + 'px', 'important');
+                    viewport.style.setProperty('width', `calc(100% - ${sidebarWidth}px)`, 'important');
+                } else {
+                    viewport.style.setProperty('margin-right', '0px', 'important');
+                    viewport.style.setProperty('width', '100%', 'important');
+                }
+            } else {
+                viewport.style.setProperty('margin-right', '0px', 'important');
+                viewport.style.setProperty('width', '100%', 'important');
+            }
+        }
+    });
+
+    observer.observe(document.body, { 
+        attributes: true, 
+        attributeFilter: ['class'],
+        subtree: true 
+    });
+
+    window.addEventListener('resize', () => {
+        const activeSidebar = document.querySelector('#op-image-sidebar.visible, #op-wordart-sidebar.visible');
+        if (activeSidebar) {
+             const sidebarWidth = 290;
+             const screenWidth = window.innerWidth;
+             const minContentWidth = 986;
+             if (screenWidth < sidebarWidth + minContentWidth) {
+                 viewport.style.setProperty('margin-right', sidebarWidth + 'px', 'important');
+                 viewport.style.setProperty('width', `calc(100% - ${sidebarWidth}px)`, 'important');
+             } else {
+                 viewport.style.setProperty('margin-right', '0px', 'important');
+                 viewport.style.setProperty('width', '100%', 'important');
+             }
+        }
+    });
+})();
+
+/* =========================================================================
+   FEATURE: Picture Format Sidebar
+   ========================================================================= */
+(function installSidebarImageFilters() {
+    let userCollapsed = false; 
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #viewport, #workspace {
+            transition: width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+        }
+
+        #op-image-sidebar {
+            position: fixed; right: 0px; top: 205px; bottom: 20px; width: 290px;
+            background: rgba(245, 245, 245, 0.7); backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-left: 1px solid rgba(0, 0, 0, 0.1); box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+            padding: 20px 16px; z-index: 99999;
+            font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+            transform: translateX(calc(100% + 50px)); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none;
+        }
+        #op-image-sidebar::-webkit-scrollbar { display: none; }
+        #op-image-sidebar.visible { transform: translateX(0); }
+        
+        #op-sidebar-expander {
+            position: fixed; right: 0px; top: 50%; width: 30px; height: 50px;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1); border-right: none; border-radius: 8px 0 0 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #444; z-index: 99998;
+            transform: translateY(-50%) translateX(100%); transition: transform 0.2s;
+        }
+        #op-sidebar-expander.visible { transform: translateY(-50%) translateX(0); }
+
+        .op-sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 4px; }
+        .op-sidebar-title { font-weight: 700; font-size: 15px; color: var(--pub-dark); letter-spacing: -0.2px; }
+        .op-header-btn { background: none; border: none; cursor: pointer; color: #666; font-size: 15px; transition: color 0.2s; }
+        .op-header-btn:hover { color: #000; }
+
+        .op-sidebar-section {
+            background: rgba(255, 255, 255, 0.4); border-radius: 12px; padding: 16px;
+            margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            transition: opacity 0.2s ease;
+        }
+        .op-section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #777; margin-bottom: 15px; display: block; }
+        .op-slider-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .op-slider-row:last-child { margin-bottom: 0; }
+        .op-slider-meta { display: flex; justify-content: space-between; align-items: center; padding: 0 2px; }
+        .op-slider-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+        .op-slider-num { font-size: 11px; font-weight: 700; color: var(--pub-color); opacity: 0.9; }
+
+        /* Gray Slider UI */
+        .op-sidebar-slider { -webkit-appearance: none; width: 100%; background: transparent; height: 16px; cursor: pointer; }
+        .op-sidebar-slider::-webkit-slider-runnable-track { width: 100%; height: 3px; background: #ccc; border-radius: 2px; }
+        .op-sidebar-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: #777; border: 2.5px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin-top: -6.5px; transition: transform 0.1s;
+        }
+        .op-sidebar-slider:active::-webkit-slider-thumb { transform: scale(1.15); }
+        .op-sidebar-slider::-moz-range-track { height: 3px; background: #ccc; border-radius: 2px; }
+        .op-sidebar-slider::-moz-range-thumb { height: 14px; width: 14px; background: #777; border: 2.5px solid #fff; border-radius: 50%; }
+    `;
+    document.head.appendChild(style);
+
+    const expander = document.createElement('div');
+    expander.id = 'op-sidebar-expander';
+    expander.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    document.body.appendChild(expander);
+
+    const panel = document.createElement('div');
+    panel.id = 'op-image-sidebar';
+    panel.innerHTML = `
+        <div class="op-sidebar-header">
+            <span class="op-sidebar-title">Format Picture</span>
+            <div class="op-sidebar-top-btns">
+                <button class="op-header-btn" id="filter-reset-btn" style="margin-right:8px" title="Reset All"><i class="fas fa-undo"></i></button>
+                <button class="op-header-btn" id="filter-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Visibility</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Transparency</span><span class="op-slider-num" id="val-transparency">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="transparency" min="0" max="100" value="0">
+            </div>
+        </div>
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Light & Tone</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Brightness</span><span class="op-slider-num" id="val-brightness">100%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="brightness" min="0" max="200" value="100">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Contrast</span><span class="op-slider-num" id="val-contrast">100%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="contrast" min="0" max="200" value="100">
+            </div>
+        </div>
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Color Settings</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Saturation</span><span class="op-slider-num" id="val-saturate">100%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="saturate" min="0" max="200" value="100">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Hue</span><span class="op-slider-num" id="val-hue-rotate">0°</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="hue-rotate" min="-180" max="180" value="0">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Grayscale</span><span class="op-slider-num" id="val-grayscale">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="grayscale" min="0" max="100" value="0">
+            </div>
+        </div>
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Effects</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Blur</span><span class="op-slider-num" id="val-blur">0px</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="blur" min="0" max="10" value="0" step="0.5">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Sepia</span><span class="op-slider-num" id="val-sepia">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="sepia" min="0" max="100" value="0">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Invert</span><span class="op-slider-num" id="val-invert">0%</span></div>
+                <input type="range" class="op-sidebar-slider" data-filter="invert" min="0" max="100" value="0">
+            </div>
+        </div>
+    `;
+    document.body.appendChild(panel);
+
+    const vp = document.getElementById('viewport') || document.getElementById('workspace');
+
+    const refreshVisibility = (el) => {
+        if (el && el.querySelector('img')) {
+            if (userCollapsed) {
+                panel.classList.remove('visible'); expander.classList.add('visible'); if (vp) vp.style.width = '';
+            } else {
+                panel.classList.add('visible'); expander.classList.remove('visible'); if (vp) vp.style.width = 'calc(100% - 290px)';
+            }
+            document.querySelectorAll('.op-sidebar-slider').forEach(s => {
+                const f = s.dataset.filter;
+                const v = el.getAttribute(`data-filter-${f}`) || (['brightness','contrast','saturate'].includes(f)?100:0);
+                s.value = v; 
+                const txt = document.getElementById(`val-${f}`);
+                if(txt) txt.innerText = v + (f==='hue-rotate'?'°':f==='blur'?'px':'%');
+            });
+        } else {
+            panel.classList.remove('visible'); expander.classList.remove('visible'); if (vp) vp.style.width = '';
+        }
+    };
+
+    const apply = (el) => {
+        const img = el.querySelector('img'); if(!img) return;
+        const get = (f, d) => el.getAttribute(`data-filter-${f}`) || d;
+        img.style.filter = `brightness(${get('brightness',100)}%) contrast(${get('contrast',100)}%) saturate(${get('saturate',100)}%) hue-rotate(${get('hue-rotate',0)}deg) blur(${get('blur',0)}px) sepia(${get('sepia',0)}%) grayscale(${get('grayscale',0)}%) invert(${get('invert',0)}%)`;
+        img.style.opacity = 1 - (get('transparency',0) / 100);
+    };
+
+    document.querySelectorAll('.op-sidebar-slider').forEach(s => {
+        s.addEventListener('input', e => {
+            if(!state.selectedEl) return;
+            const f = e.target.dataset.filter, v = e.target.value;
+            state.selectedEl.setAttribute(`data-filter-${f}`, v);
+            const txt = document.getElementById(`val-${f}`);
+            if(txt) txt.innerText = v + (f==='hue-rotate'?'°':f==='blur'?'px':'%');
+            apply(state.selectedEl);
+        });
+        s.addEventListener('change', () => { if(window.pushHistory) pushHistory(); });
+    });
+
+    document.getElementById('filter-reset-btn').addEventListener('click', () => {
+        if(!state.selectedEl) return;
+        document.querySelectorAll('.op-sidebar-slider').forEach(s => {
+            const f = s.dataset.filter, d = (['brightness','contrast','saturate'].includes(f)?100:0);
+            state.selectedEl.removeAttribute(`data-filter-${f}`);
+            s.value = d; 
+            const txt = document.getElementById(`val-${f}`);
+            if(txt) txt.innerText = d + (f==='hue-rotate'?'°':f==='blur'?'px':'%');
+        });
+        apply(state.selectedEl);
+    });
+
+    document.getElementById('filter-close-btn').addEventListener('click', () => { userCollapsed = true; refreshVisibility(state.selectedEl); });
+    document.getElementById('op-sidebar-expander').addEventListener('click', () => { userCollapsed = false; refreshVisibility(state.selectedEl); });
+
+    setTimeout(() => {
+        if(window.selectElement) {
+            const oldSel = window.selectElement;
+            window.selectElement = (el) => { oldSel(el); setTimeout(() => refreshVisibility(el), 10); };
+        }
+        if(window.deselect) {
+            const oldDes = window.deselect;
+            window.deselect = () => { oldDes(); setTimeout(() => refreshVisibility(null), 10); };
+        }
+    }, 1000);
+})();
+
+/* =========================================================================
+   FEATURE: WordArt Sidebar (Anti-Pinch Physics Compensator)
+   ========================================================================= */
+(function installSidebarWordArt() {
+    let waUserCollapsed = false;
+
+    const getDef = (f) => {
+        if(f === 'lineHeight') return 1.2;
+        if(f === 'fontWeight') return 400;
+        if(f === 'shadowX' || f === 'shadowY') return 2;
+        if(f === 'saturate') return 100; 
+        return 0;
+    };
+
+    const getUnit = (f) => {
+        if (['blur', 'spacing', 'wordSpacing', 'shadowX', 'shadowY'].includes(f)) return 'px';
+        if (['opacity', 'saturate'].includes(f)) return '%';
+        if (f === 'hue') return '°';
+        if (f === 'lineHeight') return 'x';
+        return ''; 
+    };
+
+    const toggleSliders = (isDisabled) => {
+        const sections = ['wa-color-sec', 'wa-shadow-sec', 'wa-typo-sec'];
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (isDisabled) el.classList.add('wa-disabled-section');
+                else el.classList.remove('wa-disabled-section');
+                
+                el.querySelectorAll('input').forEach(inp => {
+                    inp.disabled = isDisabled;
+                });
+            }
+        });
+    };
+
+    // --- CORE FEATURE: Auto-Compensating Text Engine ---
+    const applyWordArtShape = (target, shape) => {
+        if (!target.dataset.origText) {
+            target.dataset.origText = target.innerText.trim();
+        }
+        const text = target.dataset.origText;
+        
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.overflow = "visible"; 
+        svg.setAttribute("preserveAspectRatio", "none"); 
+        
+        const defs = document.createElementNS(svgNS, "defs");
+        const path = document.createElementNS(svgNS, "path");
+        const pathId = "wa-path-" + Math.random().toString(36).substr(2, 9);
+        path.id = pathId;
+        
+        svg.setAttribute("viewBox", "0 0 200 150");
+        
+        let pathD = "";
+        if (shape === 'arch-up') {
+            pathD = "M 10,120 Q 100,10 190,120"; 
+        } else if (shape === 'arch-down') {
+            pathD = "M 10,30 Q 100,140 190,30"; 
+        } else if (shape === 'circle') {
+            pathD = "M 100, 135 m -65, 0 a 65,65 0 1,1 130,0 a 65,65 0 1,1 -130,0";
+        } else {
+            // FIX: Draw a perfectly straight line for standard text to map onto. 
+            // This forces standard text to use the exact same stretching math as the curves!
+            pathD = "M 10,75 L 190,75";
+        }
+
+        path.setAttribute("d", pathD);
+        path.setAttribute("fill", "transparent");
+        defs.appendChild(path);
+        svg.appendChild(defs);
+
+        const textEl = document.createElementNS(svgNS, "text");
+        textEl.setAttribute("fill", "currentColor"); 
+        textEl.style.fontFamily = "inherit";
+        textEl.style.fontWeight = "inherit";
+        
+        // Ensure text stays perfectly aligned vertically to the line
+        textEl.setAttribute("dominant-baseline", "middle");
+
+        // Calculate dynamic font size to perfectly fit the path
+        const charCount = Math.max(1, text.length);
+        const dynamicFontSize = Math.min(50, 180 / (charCount * 0.45));
+        textEl.style.fontSize = dynamicFontSize + "px"; 
+
+        if (shape === 'arch-down') {
+            textEl.style.letterSpacing = (dynamicFontSize * 0.12) + "px";
+        } else if (shape === 'circle') {
+            textEl.style.letterSpacing = (dynamicFontSize * 0.20) + "px";
+        } else {
+            textEl.style.letterSpacing = "inherit";
+        }
+
+        const textPath = document.createElementNS(svgNS, "textPath");
+        textPath.setAttribute("href", "#" + pathId);
+        textPath.setAttribute("startOffset", "50%");
+        textPath.setAttribute("text-anchor", "middle");
+        textPath.textContent = text;
+
+        textEl.appendChild(textPath);
+        svg.appendChild(textEl);
+
+        target.innerHTML = '';
+        target.appendChild(svg);
+        target.style.display = 'block'; 
+        target.style.width = '100%';
+        target.style.height = '100%';
+    };
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #op-wordart-sidebar {
+            position: fixed; right: 0px; top: 205px; bottom: 20px; width: 290px;
+            background: rgba(245, 245, 245, 0.7); backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-left: 1px solid rgba(0, 0, 0, 0.1); box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+            padding: 20px 16px; z-index: 99999;
+            font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+            transform: translateX(110%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none;
+        }
+        #op-wordart-sidebar.visible { transform: translateX(0); }
+        #op-wa-sidebar-expander {
+            position: fixed; right: 0px; top: 60%; width: 30px; height: 50px;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1); border-right: none; border-radius: 8px 0 0 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #444; z-index: 99998;
+            transform: translateY(-50%) translateX(100%); transition: transform 0.2s;
+        }
+        #op-wa-sidebar-expander.visible { transform: translateY(-50%) translateX(0); }
+        
+        .wa-sidebar-input { -webkit-appearance: none; width: 100%; background: transparent; height: 16px; cursor: pointer; margin-bottom: 10px; }
+        .wa-sidebar-input::-webkit-slider-runnable-track { width: 100%; height: 3px; background: #ccc; border-radius: 2px; }
+        .wa-sidebar-input::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: #777; border: 2.5px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin-top: -6.5px; transition: transform 0.1s;
+        }
+        .wa-sidebar-input:active::-webkit-slider-thumb { transform: scale(1.15); }
+        .wa-sidebar-input::-moz-range-track { height: 3px; background: #ccc; border-radius: 2px; }
+        .wa-sidebar-input::-moz-range-thumb { height: 14px; width: 14px; background: #777; border: 2.5px solid #fff; border-radius: 50%; }
+
+        /* UI Fade logic for Disabled Sections */
+        .wa-disabled-section { opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
+
+        .wa-shape-grid { display: flex; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
+        .wa-shape-btn { 
+            flex: 1; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.1); 
+            border-radius: 8px; height: 38px; cursor: pointer; transition: all 0.2s;
+            display: flex; justify-content: center; align-items: center; color: #555;
+            min-width: 40px;
+        }
+        .wa-shape-btn:hover { background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); transform: translateY(-1px); }
+        .wa-shape-btn.active { 
+            background: #444; color: #fff; border-color: #444; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); transform: none; 
+        }
+        .wa-shape-btn svg { width: 22px; height: 22px; }
+        
+        .wa-note { font-size: 11px; color: #777; margin-top: 8px; line-height: 1.3; font-style: italic; }
+    `;
+    document.head.appendChild(style);
+
+    const expander = document.createElement('div');
+    expander.id = 'op-wa-sidebar-expander';
+    expander.innerHTML = '<i class="fas fa-font"></i>';
+    document.body.appendChild(expander);
+
+    const panel = document.createElement('div');
+    panel.id = 'op-wordart-sidebar';
+    
+    panel.innerHTML = `
+        <div class="op-sidebar-header">
+            <span class="op-sidebar-title">Format WordArt</span>
+            <div class="op-sidebar-top-btns">
+                <button class="op-header-btn" id="wa-reset-btn" style="margin-right:8px" title="Reset All"><i class="fas fa-undo"></i></button>
+                <button class="op-header-btn" id="wa-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        
+        <div class="op-sidebar-section" id="wa-color-sec">
+            <span class="op-section-label">Color & Effects</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Hue Shift</span><span class="op-slider-num" id="val-wa-hue">0°</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="hue" min="-180" max="180" value="0" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Saturation</span><span class="op-slider-num" id="val-wa-saturate">100%</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="saturate" min="0" max="200" value="100" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Transparency</span><span class="op-slider-num" id="val-wa-opacity">0%</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="opacity" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section" id="wa-shadow-sec">
+            <span class="op-section-label">Drop Shadow</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Shadow X</span><span class="op-slider-num" id="val-wa-shadowX">2px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="shadowX" min="-50" max="50" value="2" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Shadow Y</span><span class="op-slider-num" id="val-wa-shadowY">2px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="shadowY" min="-50" max="50" value="2" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Shadow Blur</span><span class="op-slider-num" id="val-wa-blur">0px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="blur" min="0" max="25" value="0">
+            </div>
+        </div>
+
+        <div class="op-sidebar-section" id="wa-typo-sec">
+            <span class="op-section-label">Typography</span>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Font Weight</span><span class="op-slider-num" id="val-wa-fontWeight">400</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="fontWeight" min="100" max="900" value="400" step="100">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Letter Spacing</span><span class="op-slider-num" id="val-wa-spacing">0px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="spacing" min="-10" max="50" value="0" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Word Spacing</span><span class="op-slider-num" id="val-wa-wordSpacing">0px</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="wordSpacing" min="-20" max="50" value="0" step="1">
+            </div>
+            <div class="op-slider-row">
+                <div class="op-slider-meta"><span class="op-slider-name">Line Height</span><span class="op-slider-num" id="val-wa-lineHeight">1.2x</span></div>
+                <input type="range" class="wa-sidebar-input" data-waf="lineHeight" min="0.5" max="3" value="1.2" step="0.1">
+            </div>
+        </div>
+        
+        <div class="op-sidebar-section">
+            <span class="op-section-label">Text Shape</span>
+            <div class="wa-shape-grid" id="wa-shape-controls">
+                <button class="wa-shape-btn active" data-shape="none" title="Straight Text">
+                    <svg viewBox="0 0 24 24"><text x="12" y="16" font-size="12" text-anchor="middle" font-weight="bold" fill="currentColor">ABC</text></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="arch-up" title="Arch Up">
+                    <svg viewBox="0 0 24 24"><path d="M 4,16 Q 12,6 20,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="arch-down" title="Arch Down">
+                    <svg viewBox="0 0 24 24"><path d="M 4,8 Q 12,18 20,8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="wa-shape-btn" data-shape="circle" title="Circle">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="4 3"/></svg>
+                </button>
+            </div>
+            <div class="wa-note">Note: Not fully compatible with all WordArt styles. Effects are disabled while a shape is applied.</div>
+        </div>
+    `;
+    document.body.appendChild(panel);
+
+    const refreshUI = (el) => {
+        const isWA = el && (el.classList.contains('wa-text') || el.querySelector('.wa-text') || el.closest('.wa-wrapper'));
+        if (isWA) {
+            if (waUserCollapsed) {
+                panel.classList.remove('visible');
+                expander.classList.add('visible');
+            } else {
+                panel.classList.add('visible');
+                expander.classList.remove('visible');
+            }
+            const target = el.querySelector('.wa-text') || el.closest('.wa-text') || (el.classList.contains('wa-text') ? el : null);
+            if (target) {
+                panel.querySelectorAll('.wa-sidebar-input').forEach(input => {
+                    const f = input.dataset.waf;
+                    const attrVal = target.getAttribute(`data-waf-${f}`);
+                    const v = attrVal !== null ? attrVal : getDef(f);
+                    input.value = v;
+                    document.getElementById(`val-wa-${f}`).innerText = v + getUnit(f);
+                });
+                
+                const currentShape = target.getAttribute('data-waf-shape') || 'none';
+                panel.querySelectorAll('.wa-shape-btn').forEach(btn => {
+                    if(btn.dataset.shape === currentShape) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+                toggleSliders(currentShape !== 'none');
+            }
+        } else {
+            panel.classList.remove('visible');
+            expander.classList.remove('visible');
+        }
+    };
+
+    setTimeout(() => {
+        if (window.selectElement) {
+            const originalSelect = window.selectElement;
+            window.selectElement = function(el) {
+                originalSelect.apply(this, arguments);
+                if (el && (el.querySelector('.wa-text') || el.classList.contains('wa-text'))) {
+                    document.getElementById('op-image-sidebar')?.classList.remove('visible');
+                }
+                refreshUI(el);
+            };
+        }
+        if (window.deselect) {
+            const originalDeselect = window.deselect;
+            window.deselect = function() {
+                originalDeselect.apply(this, arguments);
+                refreshUI(null);
+            };
+        }
+    }, 1500);
+
+    document.getElementById('wa-close-btn').onclick = () => { waUserCollapsed = true; refreshUI(state.selectedEl); };
+    expander.onclick = () => { waUserCollapsed = false; refreshUI(state.selectedEl); };
+
+    // --- Shape Button Click Logic ---
+    panel.querySelectorAll('.wa-shape-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            if (!state.selectedEl) return;
+            const target = state.selectedEl.querySelector('.wa-text') || state.selectedEl;
+            const shape = btn.dataset.shape;
+            
+            panel.querySelectorAll('.wa-shape-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            target.setAttribute('data-waf-shape', shape);
+            applyWordArtShape(target, shape);
+            toggleSliders(shape !== 'none');
+            
+            if (typeof syncWordArt === 'function') {
+                syncWordArt(state.selectedEl);
+            }
+            if (typeof pushHistory === 'function') pushHistory();
+        };
+    });
+
+    // Reset Button Logic
+    document.getElementById('wa-reset-btn').onclick = () => {
+        if (!state.selectedEl) return;
+        const target = state.selectedEl.querySelector('.wa-text') || state.selectedEl;
+        
+        panel.querySelectorAll('.wa-sidebar-input').forEach(input => {
+            const f = input.dataset.waf;
+            const d = getDef(f);
+            target.removeAttribute(`data-waf-${f}`);
+            input.value = d;
+            document.getElementById(`val-wa-${f}`).innerText = d + getUnit(f);
+        });
+
+        target.removeAttribute('data-waf-shape');
+        panel.querySelectorAll('.wa-shape-btn').forEach(b => {
+            if(b.dataset.shape === 'none') b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        applyWordArtShape(target, 'none');
+        toggleSliders(false);
+
+        target.style.opacity = 1;
+        target.style.letterSpacing = '0px';
+        target.style.wordSpacing = '0px';
+        target.style.lineHeight = 1.2;
+        target.style.fontWeight = 400;
+        target.style.webkitTextStroke = '';
+        target.style.filter = '';
+        
+        if (typeof syncWordArt === 'function') syncWordArt(state.selectedEl);
+        if (typeof pushHistory === 'function') pushHistory();
+    };
+
+    // Slider Logic
+    panel.querySelectorAll('.wa-sidebar-input').forEach(input => {
+        input.oninput = (e) => {
+            if (!state.selectedEl) return;
+            const target = state.selectedEl.querySelector('.wa-text') || state.selectedEl;
+            const val = e.target.value;
+            const f = e.target.dataset.waf;
+            
+            target.setAttribute(`data-waf-${f}`, val);
+            document.getElementById(`val-wa-${f}`).innerText = val + getUnit(f);
+            
+            if (f === 'opacity') target.style.opacity = 1 - (val / 100);
+            if (f === 'spacing') target.style.letterSpacing = `${val}px`;
+            if (f === 'wordSpacing') target.style.wordSpacing = `${val}px`;
+            if (f === 'lineHeight') target.style.lineHeight = val;
+            if (f === 'fontWeight') target.style.fontWeight = val;
+            
+            if (['blur', 'shadowX', 'shadowY', 'hue', 'saturate'].includes(f)) {
+                const blurVal = target.getAttribute('data-waf-blur') || 0;
+                const sxVal = target.getAttribute('data-waf-shadowX') || 2;
+                const syVal = target.getAttribute('data-waf-shadowY') || 2;
+                const hueVal = target.getAttribute('data-waf-hue') || 0;
+                
+                const satAttr = target.getAttribute('data-waf-saturate');
+                const satVal = satAttr !== null ? satAttr : 100;
+                
+                let filterStr = '';
+                if (blurVal > 0 || sxVal != 0 || syVal != 0) filterStr += `drop-shadow(${sxVal}px ${syVal}px ${blurVal}px rgba(0,0,0,0.5)) `;
+                if (hueVal != 0) filterStr += `hue-rotate(${hueVal}deg) `;
+                if (satVal != 100) filterStr += `saturate(${satVal}%) `;
+                
+                target.style.filter = filterStr.trim();
+            }
+
+            const currentShape = target.getAttribute('data-waf-shape') || 'none';
+            if (['spacing', 'wordSpacing', 'lineHeight', 'outline', 'blur', 'fontWeight', 'shadowX', 'shadowY'].includes(f)) {
+                if (typeof syncWordArt === 'function' && currentShape === 'none') {
+                    syncWordArt(state.selectedEl);
+                }
+            }
+            if (typeof pushHistory === 'function') pushHistory();
+        };
+    });
+})();
 /* =========================================================================
    OPENPUBLISHER ADDON: Automate Landscape mode
    ========================================================================= */
