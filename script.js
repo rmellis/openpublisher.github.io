@@ -6155,6 +6155,230 @@ window.initWordArt = function() {
     console.log("✅ Keyboard Nudge Script started successfully.");
 })();
 /* =========================================================================
+   FEATURE: Context Tools - Rich Formatting, Paragraphs & View Options
+   (Applies to Text Box & WordArt Ribbons)
+   ========================================================================= */
+(function installContextRichFormattingAndOptions() {
+    console.log("🛠️ Context Tools Script initializing...");
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .force-hide-float { display: none !important; }
+        /* Helper classes to force mathematically perfect grid alignment */
+        .ctx-row { display: flex; gap: 4px; align-items: center; height: 24px; margin-bottom: 4px; }
+        .ctx-row:last-child { margin-bottom: 0; }
+        .ctx-btn-strict { height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; padding: 0; box-sizing: border-box; }
+        .ctx-color-strict { flex-direction: column; position: relative; overflow: hidden; }
+    `;
+    document.head.appendChild(style);
+
+    setTimeout(() => {
+        // We will loop through both ribbons to inject the same tools
+        const targets = [
+            { id: 'ribbon-format-text', suffix: 'text' },
+            { id: 'ribbon-format-wordart', suffix: 'wa' }
+        ];
+
+        targets.forEach(target => {
+            const ribbon = document.getElementById(target.id);
+            if (!ribbon) return; // Skip if this specific ribbon hasn't rendered yet
+
+            // ==========================================
+            // GROUP 1: FONT
+            // ==========================================
+            const fontGroup = document.createElement('div');
+            fontGroup.className = 'group';
+            fontGroup.innerHTML = `
+                <div style="display:flex; flex-direction:column; padding: 2px;">
+                    <div class="ctx-row">
+                        <div class="input-group" style="margin:0; height:100%;">
+                            <div class="ribbon-input" id="ctx-font-btn-${target.suffix}" style="width: 120px; height: 24px; background: white; cursor:pointer; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 6px;" onclick="window._currentRibbonSuffix='${target.suffix}'; toggleCustomDropdown('ctx-ribbon'); event.stopPropagation();">
+                                <span id="ctx-font-label-${target.suffix}" style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Arial</span> 
+                                <i class="fas fa-chevron-down" style="color:#666; font-size: 10px;"></i>
+                            </div>
+                        </div>
+                        <div class="input-group" style="margin:0; height:100%;">
+                            <input type="number" id="ctx-font-size-${target.suffix}" value="16" min="8" max="144" style="width:45px; height: 24px; text-align:center; box-sizing: border-box; margin:0; padding:0 2px; font-size: 12px;" onchange="setTrueFontSize(this.value + 'px')">
+                        </div>
+                        
+                        <div style="width:1px; height:16px; background:#ccc; margin:0 2px;"></div>
+                        
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('removeFormat')" title="Clear Formatting"><i class="fas fa-eraser"></i></div>
+                    </div>
+                    
+                    <div class="ctx-row">
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('bold')" title="Bold"><i class="fas fa-bold"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('italic')" title="Italic"><i class="fas fa-italic"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('underline')" title="Underline"><i class="fas fa-underline"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('strikeThrough')" title="Strikethrough"><i class="fas fa-strikethrough"></i></div>
+                        
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('subscript')" title="Subscript"><i class="fas fa-subscript"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('superscript')" title="Superscript"><i class="fas fa-superscript"></i></div>
+                        
+                        <div style="width:1px; height:16px; background:#ccc; margin:0 2px;"></div>
+                        
+                        <div class="mini-btn ctx-btn-strict ctx-color-strict" title="Text Color">
+                            <i class="fas fa-font" style="color:var(--pub-color); margin-top: -2px;"></i>
+                            <div style="height:3px; background:black; width:16px; position:absolute; bottom:2px;" id="ctx-text-color-bar-${target.suffix}"></div>
+                            <input type="color" style="position:absolute; inset:0; opacity:0; cursor:pointer;" onchange="execCmd('foreColor', this.value); document.getElementById('ctx-text-color-bar-${target.suffix}').style.background=this.value;">
+                        </div>
+                        
+                        <div class="mini-btn ctx-btn-strict ctx-color-strict" title="Highlight Color">
+                            <i class="fas fa-highlighter" style="margin-top: -2px;"></i>
+                            <div style="height:3px; background:yellow; width:16px; position:absolute; bottom:2px;" id="ctx-bg-color-bar-${target.suffix}"></div>
+                            <input type="color" value="#ffff00" style="position:absolute; inset:0; opacity:0; cursor:pointer;" onchange="execCmd('hiliteColor', this.value); document.getElementById('ctx-bg-color-bar-${target.suffix}').style.background=this.value;">
+                        </div>
+                    </div>
+                </div>
+                <div class="group-label">Font</div>
+            `;
+
+            // ==========================================
+            // GROUP 2: PARAGRAPH
+            // ==========================================
+            const paragraphGroup = document.createElement('div');
+            paragraphGroup.className = 'group';
+            paragraphGroup.innerHTML = `
+                <div style="display:flex; flex-direction:column; padding: 2px;">
+                    <div class="ctx-row">
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('insertUnorderedList')" title="Bullet List"><i class="fas fa-list-ul"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('insertOrderedList')" title="Numbered List"><i class="fas fa-list-ol"></i></div>
+                        
+                        <div style="width:1px; height:16px; background:#ccc; margin:0 2px;"></div>
+                        
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('outdent')" title="Decrease Indent"><i class="fas fa-outdent"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('indent')" title="Increase Indent"><i class="fas fa-indent"></i></div>
+                    </div>
+                    <div class="ctx-row">
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('justifyLeft')" title="Align Left"><i class="fas fa-align-left"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('justifyCenter')" title="Align Center"><i class="fas fa-align-center"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('justifyRight')" title="Align Right"><i class="fas fa-align-right"></i></div>
+                        <div class="mini-btn ctx-btn-strict" onclick="execCmd('justifyFull')" title="Justify"><i class="fas fa-align-justify"></i></div>
+                    </div>
+                </div>
+                <div class="group-label">Paragraph</div>
+            `;
+
+            // ==========================================
+            // GROUP 3: VIEW OPTIONS
+            // ==========================================
+            const optionsGroup = document.createElement('div');
+            optionsGroup.className = 'group';
+            optionsGroup.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:6px; padding: 2px 6px; justify-content: center; height: 100%;">
+                    <label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer; margin:0; color:#333;">
+                        <input type="checkbox" id="ribbon-toggle-float-${target.suffix}" checked style="margin:0; cursor:pointer; accent-color: var(--pub-color, #217346);"> Show Float Toolbar
+                    </label>
+                    <label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer; margin:0; color:#333;">
+                        <input type="checkbox" id="ribbon-toggle-margins-${target.suffix}" checked style="margin:0; cursor:pointer; accent-color: var(--pub-color, #217346);"> Show Page Margins
+                    </label>
+                </div>
+                <div class="group-label">View</div>
+            `;
+
+            // Inject the groups securely behind the Clipboard group if it exists
+            if (ribbon.children.length > 1) {
+                ribbon.insertBefore(fontGroup, ribbon.children[1]);
+                ribbon.insertBefore(paragraphGroup, ribbon.children[2]);
+                ribbon.insertBefore(optionsGroup, ribbon.children[3]);
+            } else {
+                ribbon.appendChild(fontGroup);
+                ribbon.appendChild(paragraphGroup);
+                ribbon.appendChild(optionsGroup);
+            }
+
+            // Bind the View option checkboxes for this specific ribbon
+            document.getElementById(`ribbon-toggle-float-${target.suffix}`).addEventListener('change', (e) => {
+                const ft = document.getElementById('float-toolbar');
+                if (ft) {
+                    if (!e.target.checked) ft.classList.add('force-hide-float');
+                    else ft.classList.remove('force-hide-float');
+                }
+            });
+
+            document.getElementById(`ribbon-toggle-margins-${target.suffix}`).addEventListener('change', (e) => {
+                document.querySelectorAll('.margin-guides').forEach(g => {
+                    g.style.display = e.target.checked ? 'block' : 'none';
+                });
+            });
+        });
+
+        // ==========================================
+        // GLOBAL LOGIC WIRING (Only needs to run once)
+        // ==========================================
+
+        // 1. Font Dropdown Hijack (Reads the _currentRibbonSuffix flag to position correctly)
+        if (typeof window.toggleCustomDropdown === 'function' && !window._patchedToggleCustomDropdownCtx) {
+            const originalToggle = window.toggleCustomDropdown;
+            window.toggleCustomDropdown = function(type) {
+                if (type === 'ctx-ribbon') {
+                    const menu = document.getElementById('ribbon-font-list');
+                    if (!menu) return;
+
+                    const isVisible = menu.style.display === 'block';
+                    document.querySelectorAll('.custom-dropdown').forEach(d => d.style.display = 'none');
+                    
+                    if (!isVisible) {
+                        const btn = document.getElementById('ctx-font-btn-' + window._currentRibbonSuffix);
+                        if (btn) {
+                            const rect = btn.getBoundingClientRect();
+                            menu.style.left = rect.left + 'px';
+                            menu.style.top = (rect.bottom + 2) + 'px';
+                            menu.style.width = '200px';
+                            menu.style.zIndex = '9999999';
+                        }
+                        menu.style.display = 'block';
+                    }
+                    return;
+                }
+                originalToggle.apply(this, arguments);
+            };
+            window._patchedToggleCustomDropdownCtx = true;
+        }
+
+        // 2. Sync Font Choice back to our new labels
+        if (typeof window.selectFont === 'function' && !window._patchedSelectFontCtx) {
+            const originalSelectFont = window.selectFont;
+            window.selectFont = function(fontName) {
+                originalSelectFont.apply(this, arguments);
+                
+                // Update labels on BOTH ribbons just to be safe
+                const lblText = document.getElementById('ctx-font-label-text');
+                const lblWA = document.getElementById('ctx-font-label-wa');
+                if (lblText) lblText.innerText = fontName;
+                if (lblWA) lblWA.innerText = fontName;
+            };
+            window._patchedSelectFontCtx = true;
+        }
+
+        // 3. Sync font updates when the Float Toolbar updates
+        if (typeof window.updateFloatToolbarValues === 'function' && !window._patchedUpdateFloatCtx) {
+            const originalUpdateFloat = window.updateFloatToolbarValues;
+            window.updateFloatToolbarValues = function() {
+                originalUpdateFloat.apply(this, arguments);
+                const ribbonLabel = document.getElementById('ribbon-font-label');
+                const ribbonSize = document.getElementById('font-size');
+                
+                if (ribbonLabel) {
+                    const lblText = document.getElementById('ctx-font-label-text');
+                    const lblWA = document.getElementById('ctx-font-label-wa');
+                    if (lblText) lblText.innerText = ribbonLabel.innerText;
+                    if (lblWA) lblWA.innerText = ribbonLabel.innerText;
+                }
+                if (ribbonSize) {
+                    const szText = document.getElementById('ctx-font-size-text');
+                    const szWA = document.getElementById('ctx-font-size-wa');
+                    if (szText) szText.value = ribbonSize.value;
+                    if (szWA) szWA.value = ribbonSize.value;
+                }
+            };
+            window._patchedUpdateFloatCtx = true;
+        }
+
+        console.log("✅ Context Tools for Text & WordArt added successfully.");
+    }, 1500); 
+})();
+/* =========================================================================
    OPENPUBLISHER ADDON: Automate Landscape mode
    ========================================================================= */
 if (typeof window.originalRenderPage === 'undefined') {
