@@ -6379,6 +6379,89 @@ window.initWordArt = function() {
     }, 1500); 
 })();
 /* =========================================================================
+   FEATURE: Smart Text Interaction (Single-Click Edit, Exact Caret & Auto-Deselect)
+   ========================================================================= */
+(function installSmartTextInteraction() {
+    console.log("🛠️ Smart Text Interaction Script initializing...");
+
+    let startX = 0;
+    let startY = 0;
+
+    // 1. Record exactly where the mouse started
+    document.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        startY = e.clientY;
+    });
+
+    // 2. Evaluate what the user was trying to do when they let go of the mouse
+    document.addEventListener('mouseup', (e) => {
+        // Calculate how far the mouse moved
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+
+        // If it was a drag, abort completely so we don't mess up the movement engine
+        if (dx > 3 || dy > 3) return;
+
+        const pubEl = e.target.closest('.pub-element') || e.target.closest('.page-header') || e.target.closest('.page-footer');
+        
+        // --- PART A: SINGLE-CLICK TO EDIT WITH EXACT CARET PLACEMENT ---
+        if (pubEl) {
+            let editable = pubEl.querySelector('[contenteditable="true"]');
+            if (pubEl.getAttribute('contenteditable') === 'true') editable = pubEl;
+
+            if (editable && !e.target.closest('.resize-handle') && !e.target.closest('.rotate-handle')) {
+                // Focus the box immediately
+                editable.focus();
+
+                // MAGIC TRICK: Find the exact letter under the mouse pointer
+                let range = null;
+                
+                // Chrome, Safari, Edge
+                if (document.caretRangeFromPoint) { 
+                    range = document.caretRangeFromPoint(e.clientX, e.clientY);
+                } 
+                // Firefox Fallback
+                else if (document.caretPositionFromPoint) { 
+                    const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+                    if (pos) {
+                        range = document.createRange();
+                        range.setStart(pos.offsetNode, pos.offset);
+                        range.collapse(true);
+                    }
+                }
+
+                // If we successfully found the exact text node, drop the cursor there!
+                if (range) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+        } 
+        
+        // --- PART B: CLEAR HIGHLIGHTS ON EXIT ---
+        else {
+            const clickedToolbar = e.target.closest('.title-bar') || 
+                                   e.target.closest('#ribbon-container') || 
+                                   e.target.closest('.sidebar-panel') ||
+                                   e.target.closest('#float-toolbar') ||
+                                   e.target.closest('.custom-dialog');
+
+            if (!clickedToolbar) {
+                if (window.getSelection) {
+                    window.getSelection().removeAllRanges();
+                }
+                
+                if (document.activeElement && document.activeElement.getAttribute('contenteditable') === 'true') {
+                    document.activeElement.blur();
+                }
+            }
+        }
+    });
+
+    console.log("✅ Smart Text Interaction (with Exact Caret) added successfully.");
+})();
+/* =========================================================================
    OPENPUBLISHER ADDON: Automate Landscape mode
    ========================================================================= */
 if (typeof window.originalRenderPage === 'undefined') {
