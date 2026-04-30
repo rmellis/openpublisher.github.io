@@ -6379,6 +6379,83 @@ window.initWordArt = function() {
     }, 1500); 
 })();
 /* =========================================================================
+   FEATURE: Scratch Area Fading (Off-Canvas Transparency)
+   ========================================================================= */
+(function installScratchAreaFading() {
+    console.log("🛠️ Scratch Area Fading Script initializing...");
+
+    // 1. Inject the CSS class for the faded effect
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .scratch-area-item { 
+            opacity: 0.4 !important; 
+            transition: opacity 0.2s ease-in-out; 
+            filter: grayscale(20%); /* Optional: slight grey out */
+        }
+        /* Keep it fully visible if the user is actively selecting/clicking it */
+        .scratch-area-item.selected {
+            opacity: 0.8 !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 2. The collision detection logic
+    function checkOffCanvasStatus(el) {
+        const paper = document.getElementById('paper');
+        if (!paper || !el) return;
+
+        const paperRect = paper.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+
+        // Check if the element's bounding box is COMPLETELY outside the paper
+        const completelyOutside = (
+            elRect.right < paperRect.left ||
+            elRect.left > paperRect.right ||
+            elRect.bottom < paperRect.top ||
+            elRect.top > paperRect.bottom
+        );
+
+        if (completelyOutside) {
+            el.classList.add('scratch-area-item');
+        } else {
+            el.classList.remove('scratch-area-item');
+        }
+    }
+
+    // 3. Set up the invisible observer to watch for position changes
+    setTimeout(() => {
+        const paper = document.getElementById('paper');
+        if (!paper) {
+            console.warn("Could not find #paper for Scratch Area logic.");
+            return;
+        }
+
+        // Run an initial check on all existing elements in case a template loaded
+        document.querySelectorAll('.pub-element').forEach(checkOffCanvasStatus);
+
+        // Create an observer that watches for style changes (dragging, nudging, resizing)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                // If an element's inline style changes (which happens when its x/y coordinates change)
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (mutation.target.classList.contains('pub-element')) {
+                        checkOffCanvasStatus(mutation.target);
+                    }
+                }
+            });
+        });
+
+        // Tell the observer to watch the paper and all its children
+        observer.observe(paper, { 
+            subtree: true, 
+            attributes: true, 
+            attributeFilter: ['style'] 
+        });
+
+        console.log("✅ Scratch Area Fading added successfully.");
+    }, 1000); // Small delay to ensure paper is rendered
+})();
+/* =========================================================================
    FEATURE: Smart Text Interaction (Final Stable - Text Boxes & Tables)
    ========================================================================= */
 (function installSmartTextInteraction() {
