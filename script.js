@@ -13097,50 +13097,100 @@ function initBasicBorders() {
     console.log("✅ Save shortcut (Ctrl+S) override installed successfully.");
 })();
 /* =========================================================================
-   Print Router & Auto-Orientation
-   Hooks natively into the browser's print pipeline & detects Landscape/Portrait
+   Printer Router and page - print sizer
+   - Portrait: (Scale 1.025, Center-Center, Nudged).
+   - Landscape: (ScaleX 1.02, Top-Left, Right-Gap Closed).
    ========================================================================= */
 (function installNativePrintHooks() {
 
-    // 1. Extract the DOM building logic out so it can be run synchronously
     function buildPrintDOM() {
-        // Force a save of the current page so recent keystrokes aren't lost
         if (typeof state !== 'undefined' && state.pages && state.pages.length > 0) {
             if (typeof serializeCurrentPage === 'function') {
                 state.pages[state.currentPageIndex] = serializeCurrentPage();
             }
         }
 
-        // --- NEW: Determine Document Orientation ---
         let isLandscape = false;
+        let pW = '794px';
+        let pH = '1123px';
+        
         if (typeof state !== 'undefined' && state.pages && state.pages.length > 0) {
             const firstPage = state.pages[0];
-            const w = parseFloat(firstPage.width);
-            const h = parseFloat(firstPage.height);
-            if (w > h) isLandscape = true;
+            pW = firstPage.width || '794px';
+            pH = firstPage.height || '1123px';
+            if (parseFloat(pW) > parseFloat(pH)) isLandscape = true;
         }
 
-        // --- NEW: Inject dynamic Print CSS with Orientation ---
-        let printStyle = document.getElementById('op-dynamic-print-style');
-        if (!printStyle) {
-            printStyle = document.createElement('style');
-            printStyle.id = 'op-dynamic-print-style';
-            document.head.appendChild(printStyle);
-        }
+        const oldStyles = document.querySelectorAll('.op-dynamic-print-style');
+        oldStyles.forEach(s => s.remove());
+
+        const printStyle = document.createElement('style');
+        printStyle.className = 'op-dynamic-print-style';
+        document.head.appendChild(printStyle);
         
-        // This CSS hides the UI, removes browser margins, AND sets the default orientation!
         printStyle.innerHTML = `
             @media print {
-                body > *:not(#op-print-spooler) { display: none !important; }
-                #op-print-spooler { display: block !important; position: absolute; top: 0; left: 0; width: 100%; }
                 @page { 
                     size: ${isLandscape ? 'landscape' : 'portrait'}; 
-                    margin: 0; 
+                    margin: 0 !important; 
+                }
+                
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    background: white !important;
+                    overflow: hidden !important;
+                }
+                
+                body > *:not(#op-print-spooler) { display: none !important; }
+                
+                #op-print-spooler { 
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: ${isLandscape ? 'flex-start' : 'center'} !important; 
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    background: white !important;
+                }
+                
+                .op-print-page {
+                    position: relative !important;
+                    width: ${pW} !important;
+                    height: ${pH} !important;
+                    background: transparent !important;
+                    overflow: visible !important; 
+                    page-break-after: always !important;
+                }
+
+                .op-print-scaler {
+                    position: absolute !important;
+                    width: 100%; 
+                    height: 100%;
+                    
+                    /* ✨ DUAL LOGIC RESTORATION:
+                       Portrait: -1px top, 1px left.
+                       Landscape: 0px top, 1px left. */
+                    top: ${isLandscape ? '0' : '-1px'} !important; 
+                    left: 1px !important;
+                    
+                    /* ✨ DUAL SCALE RESTORATION:
+                       Portrait: Original perfect 1.025 centered.
+                       Landscape: Fixed 1.02 wide / 1.025 high Top-Left. */
+                    transform: ${isLandscape ? 'scaleX(1.02) scaleY(1.025)' : 'scale(1.025)'} !important; 
+                    transform-origin: ${isLandscape ? 'top left' : 'center center'} !important;
+
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                 }
             }
         `;
 
-        // 2. Build the Spooler
         let printSpooler = document.getElementById('op-print-spooler');
         if (!printSpooler) {
             printSpooler = document.createElement('div');
@@ -13153,14 +13203,10 @@ function initBasicBorders() {
             state.pages.forEach((page) => {
                 let pageWrapper = document.createElement('div');
                 pageWrapper.className = 'op-print-page';
-                pageWrapper.style.width = page.width;
-                pageWrapper.style.height = page.height;
-                pageWrapper.style.background = page.background || '#ffffff';
-                pageWrapper.style.position = 'relative';
-                pageWrapper.style.fontSize = '16px';
-                pageWrapper.style.lineHeight = 'normal';
-                pageWrapper.style.overflow = 'hidden';
-                pageWrapper.style.pageBreakAfter = 'always'; // Forces browser to split pages
+                
+                let scaler = document.createElement('div');
+                scaler.className = 'op-print-scaler';
+                scaler.style.backgroundColor = page.background || '#ffffff';
 
                 page.elements.forEach(el => {
                     let elDiv = document.createElement('div');
@@ -13181,34 +13227,32 @@ function initBasicBorders() {
                         const sX = el.scaleX || "1";
                         const sY = el.scaleY || "1";
                         let cleanHTML = el.innerHTML.replace(/contenteditable="true"/g, 'contenteditable="false"');
-                        elDiv.innerHTML = `<div class="element-content" style="transform: scale(${sX}, ${sY}); width:100%; height:100%; transform-origin: top left; outline: none; border: none;">${cleanHTML}</div>`;
+                        elDiv.innerHTML = '<div class="element-content" style="transform: scale(' + sX + ', ' + sY + '); width:100%; height:100%; transform-origin: top left; outline: none; border: none;">' + cleanHTML + '</div>';
                     }
-                    pageWrapper.appendChild(elDiv);
+                    scaler.appendChild(elDiv);
                 });
+                
+                pageWrapper.appendChild(scaler);
                 printSpooler.appendChild(pageWrapper);
             });
         }
-
-        if (document.activeElement) document.activeElement.blur();
-        if (window.getSelection) window.getSelection().removeAllRanges();
     }
 
-    // 3. Hook into the native browser print events
-    window.addEventListener('beforeprint', () => {
-        buildPrintDOM(); // Browser pauses to let us build the pages and inject the orientation CSS
-    });
-
+    window.addEventListener('beforeprint', buildPrintDOM);
     window.addEventListener('afterprint', () => {
-        const printSpooler = document.getElementById('op-print-spooler');
-        if (printSpooler) printSpooler.innerHTML = ''; // Clean up memory after print
+        const spooler = document.getElementById('op-print-spooler');
+        if (spooler) spooler.innerHTML = ''; 
     });
 
-    // 4. Overwrite your UI's print button to just trigger the native print
-    window.printFullDocument = function() {
-        window.print(); 
-    };
+    window.printFullDocument = () => window.print();
 
-    console.log("✅ Ultimate Native Print Router (with Auto-Orientation) installed successfully.");
+    window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.print();
+        }
+    }, true);
 })();
 /* =========================================================================
    INP FIX (Overrides for heavy functions)
