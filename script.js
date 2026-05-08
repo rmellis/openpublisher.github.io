@@ -14376,6 +14376,368 @@ window.toggleCrop = function() {
 })();
 })();
 /* =========================================================================
+    The Theme Studio to replace the old themes on the page design tab.
+    Clean, formatted, and documented for production use.
+   ========================================================================= */
+;(function installPerfectedThemeStudio() {
+    console.log("🛠️ Theme Studio initializing...");
+
+    // ==========================================
+    // 1. CLEANUP & PREPARATION
+    // ==========================================
+    const oldThemeGroup = document.getElementById('theme-group');
+    if (oldThemeGroup) oldThemeGroup.style.display = 'none';
+    
+    const oldModernGroup = document.getElementById('modern-theme-group');
+    if (oldModernGroup) oldModernGroup.style.display = 'none';
+    
+    const rogueStudio = document.getElementById('advanced-theme-studio');
+    if (rogueStudio) rogueStudio.remove();
+
+    // ==========================================
+    // 2. INJECT CSS
+    // ==========================================
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* Lock the theme elements from interactions */
+        [data-is-theme="true"] { pointer-events: none !important; user-select: none !important; }
+        [data-is-theme="true"] * { pointer-events: none !important; user-select: none !important; }
+        [data-is-theme="true"] .resize-handle,
+        [data-is-theme="true"] .rotate-handle,
+        [data-is-theme="true"] .rotate-stick { display: none !important; }
+
+        /* Studio Container & Layout */
+        #advanced-theme-studio { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .ts-ribbon-container { display: flex; align-items: center; gap: 15px; padding: 2px 10px; }
+        .ts-divider { width: 1px; height: 65px; background: #cbd5e1; }
+
+        /* Swatch Grid */
+        .ts-swatch-grid { display: grid; grid-template-columns: repeat(12, 34px); grid-template-rows: repeat(2, 34px); gap: 5px; }
+        .ts-swatch { width: 34px; height: 34px; border-radius: 6px; cursor: pointer; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.1s ease, box-shadow 0.1s ease; overflow: hidden; border: 1px solid rgba(0,0,0,0.1); }
+        .ts-swatch:hover { transform: scale(1.08); box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 2; }
+        .ts-swatch.active { outline: 2px solid var(--pub-color, #007670); outline-offset: 1px; }
+        .ts-swatch i { position: absolute; bottom: 2px; right: 2px; color: rgba(255, 255, 255, 0.9); font-size: 8px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+        /* Sliders */
+        .ts-sliders { display: flex; flex-direction: column; gap: 6px; width: 130px; }
+        .ts-slider-group { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .ts-slider-group label { font-size: 10px; font-weight: 600; color: #475569; width: 45px; white-space: nowrap; }
+        .ts-slider { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: linear-gradient(to right, #d1e8dd, var(--pub-color, #007670)); outline: none; }
+        .ts-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--pub-color, #007670); border: 2px solid #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.3); cursor: pointer; }
+
+        /* Remove Theme Button (Native Ribbon Style) */
+        #ts-clear-theme-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; color: #333; border: 1px solid transparent; height: 73px; min-width: 60px; padding: 0 10px; border-radius: 4px; cursor: pointer; transition: all 0.1s ease; font-size: 11px; text-align: center; box-sizing: border-box; }
+        #ts-clear-theme-btn i { font-size: 24px; color: var(--pub-color, #007670); margin-bottom: 6px; }
+        #ts-clear-theme-btn:hover { background: rgba(0, 0, 0, 0.05); border-color: rgba(0, 0, 0, 0.1); }
+        #ts-clear-theme-btn:active { background: rgba(0, 0, 0, 0.1); }
+    `;
+    document.head.appendChild(style);
+
+    // ==========================================
+    // 3. THEME DEFINITIONS
+    // ==========================================
+    const gradients = [
+        { c1: '#4facfe', c2: '#00f2fe', icon: 'fa-sun' },
+        { c1: '#667eea', c2: '#764ba2', icon: 'fa-moon' },
+        { c1: '#ff0844', c2: '#ffb199', icon: 'fa-fire' },
+        { c1: '#f83600', c2: '#f9d423', icon: 'fa-bolt' },
+        { c1: '#b224ef', c2: '#7579ff', icon: 'fa-star' },
+        { c1: '#fa709a', c2: '#fee140', icon: 'fa-heart' },
+        { c1: '#89f7fe', c2: '#66a6ff', icon: 'fa-water' },
+        { c1: '#0ba360', c2: '#3cba92', icon: 'fa-leaf' },
+        { c1: '#232526', c2: '#414345', icon: 'fa-city' },
+        { c1: '#ff7e5f', c2: '#feb47b', icon: 'fa-sunset' },
+        { c1: '#a18cd1', c2: '#fbc2eb', icon: 'fa-magic' },
+        { c1: '#2b5876', c2: '#4e4376', icon: 'fa-meteor' }
+    ];
+
+    const textures = [
+        { c1: '#f1f5f9', url: 'https://www.transparenttextures.com/patterns/white-wall.png', icon: 'fa-border-all' },
+        { c1: '#cbd5e1', url: 'https://www.transparenttextures.com/patterns/brushed-alum.png', icon: 'fa-align-justify' },
+        { c1: '#94a3b8', url: 'https://www.transparenttextures.com/patterns/concrete-wall.png', icon: 'fa-circle-half-stroke' },
+        { c1: '#fde047', url: 'https://www.transparenttextures.com/patterns/cream-paper.png', icon: 'fa-scroll' },
+        { c1: '#3b82f6', url: 'https://www.transparenttextures.com/patterns/denim.png', icon: 'fa-layer-group' },
+        { c1: '#1e293b', url: 'https://www.transparenttextures.com/patterns/leather.png', icon: 'fa-grip' },
+        { c1: '#8b5cf6', url: 'https://www.transparenttextures.com/patterns/wood-pattern.png', icon: 'fa-tree' },
+        { c1: '#10b981', url: 'https://www.transparenttextures.com/patterns/cubes.png', icon: 'fa-cubes' },
+        { c1: '#64748b', url: 'https://www.transparenttextures.com/patterns/asphalt-pattern.png', icon: 'fa-road' },
+        { c1: '#334155', url: 'https://www.transparenttextures.com/patterns/carbon-fibre.png', icon: 'fa-chess-board' },
+        { c1: '#fef08a', url: 'https://www.transparenttextures.com/patterns/notebook.png', icon: 'fa-book' },
+        { c1: '#ef4444', url: 'https://www.transparenttextures.com/patterns/brick-wall.png', icon: 'fa-th-large' }
+    ];
+
+    // ==========================================
+    // 4. BUILD THE UI DOM
+    // ==========================================
+    const studioContainer = document.createElement('div');
+    studioContainer.id = 'advanced-theme-studio';
+    studioContainer.className = 'group'; 
+
+    let swatchesHTML = `<div class="ts-swatch-grid">`;
+    gradients.forEach((g) => {
+        swatchesHTML += `<div class="ts-swatch" data-type="gradient" data-c1="${g.c1}" data-c2="${g.c2}" style="background: linear-gradient(135deg, ${g.c1}, ${g.c2});"><i class="fas ${g.icon}"></i></div>`;
+    });
+    textures.forEach((t) => {
+        swatchesHTML += `<div class="ts-swatch" data-type="texture" data-c1="${t.c1}" data-url="${t.url}" style="background: ${t.c1} url('${t.url}');"><i class="fas ${t.icon}"></i></div>`;
+    });
+    swatchesHTML += `</div>`;
+
+    studioContainer.innerHTML = `
+        <div class="ts-ribbon-container">
+            <div id="ts-clear-theme-btn" title="Remove Theme">
+                <i class="fas fa-eraser"></i>
+                <span style="line-height: 1.2;">Remove<br>Theme</span>
+            </div>
+            
+            <div class="ts-divider"></div>
+            ${swatchesHTML}
+            <div class="ts-divider"></div>
+            
+            <div class="ts-sliders">
+                <div class="ts-slider-group">
+                    <label>Saturation</label>
+                    <input type="range" id="ts-sat-slider" class="ts-slider" min="0" max="200" value="100">
+                </div>
+                <div class="ts-slider-group">
+                    <label>Brightness</label>
+                    <input type="range" id="ts-bri-slider" class="ts-slider" min="50" max="150" value="100">
+                </div>
+                <div class="ts-slider-group">
+                    <label>Texture</label>
+                    <input type="range" id="ts-tex-slider" class="ts-slider" min="0" max="100" value="100">
+                </div>
+            </div>
+        </div>
+        <div class="group-label">Theme Studio</div>
+    `;
+
+    // Inject into the ribbon
+    if (oldThemeGroup && oldThemeGroup.parentNode) {
+        oldThemeGroup.parentNode.insertBefore(studioContainer, oldThemeGroup.nextSibling);
+    } else {
+        document.body.appendChild(studioContainer);
+    }
+
+    // ==========================================
+    // 5. THEME INJECTION ENGINE
+    // ==========================================
+    const applyThemeToCanvas = (swatch) => {
+        const paper = document.getElementById('paper');
+        if (!paper) return;
+
+        // Save active tab to prevent jump
+        const activeTabEl = document.querySelector('.tab.active');
+        const activeTabId = activeTabEl ? activeTabEl.id.replace('tab-', '') : null;
+
+        // Clear existing
+        const existingTheme = paper.querySelector('[data-is-theme="true"]');
+        if (existingTheme) existingTheme.remove();
+
+        const type = swatch.getAttribute('data-type');
+        const c1 = swatch.getAttribute('data-c1');
+
+        // Mute app's tab switching temporarily
+        const originalSwitchTab = window.switchTab;
+        window.switchTab = function() {}; 
+
+        if (typeof createWrapper === 'function') {
+            const wrapper = createWrapper(`<div class="op-theme-container" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;"></div>`);
+            
+            wrapper.setAttribute('data-is-theme', 'true');
+            wrapper.setAttribute('data-type', 'box');
+            wrapper.style.cssText += 'left: 0px !important; top: 0px !important; width: 100% !important; height: 100% !important; z-index: 0 !important;';
+
+            const container = wrapper.querySelector('.op-theme-container');
+            
+            // Build visual layers
+            const bgDiv = document.createElement('div');
+            bgDiv.className = 'op-theme-bg';
+            bgDiv.style.cssText = 'position:absolute; inset:0; width:100%; height:100%;';
+            
+            if (type === 'gradient') {
+                bgDiv.style.background = `linear-gradient(135deg, ${c1}, ${swatch.getAttribute('data-c2')})`;
+            } else {
+                bgDiv.style.backgroundColor = c1;
+            }
+            container.appendChild(bgDiv);
+
+            if (type === 'texture') {
+                const texDiv = document.createElement('div');
+                texDiv.className = 'op-theme-tex';
+                texDiv.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; background-repeat:repeat; opacity:1;';
+                texDiv.style.backgroundImage = `url('${swatch.getAttribute('data-url')}')`;
+                container.appendChild(texDiv);
+            }
+            
+            if (typeof deselect === 'function') deselect();
+        }
+
+        // Restore tab behavior
+        window.switchTab = originalSwitchTab;
+        if (activeTabId && typeof window.switchTab === 'function') {
+            window.switchTab(activeTabId);
+        }
+
+        updateLiveFilters();
+        if (typeof pushHistory === 'function') pushHistory();
+    };
+
+    const updateLiveFilters = () => {
+        const paper = document.getElementById('paper');
+        if (!paper) return;
+
+        const themeLayer = paper.querySelector('[data-is-theme="true"]');
+        if (!themeLayer) return;
+
+        const sat = document.getElementById('ts-sat-slider').value;
+        const bri = document.getElementById('ts-bri-slider').value;
+        const texStr = document.getElementById('ts-tex-slider').value / 100;
+
+        const container = themeLayer.querySelector('.op-theme-container');
+        if (container) container.style.filter = `saturate(${sat}%) brightness(${bri}%)`;
+
+        const texLayer = themeLayer.querySelector('.op-theme-tex');
+        if (texLayer) texLayer.style.opacity = texStr;
+    };
+
+    // ==========================================
+    // 6. CLEAR THEME LOGIC
+    // ==========================================
+    document.getElementById('ts-clear-theme-btn').addEventListener('click', () => {
+        const paper = document.getElementById('paper');
+        if (paper) {
+            const existingTheme = paper.querySelector('[data-is-theme="true"]');
+            if (existingTheme) existingTheme.remove();
+            paper.style.background = '#ffffff';
+        }
+        
+        swatches.forEach(s => s.classList.remove('active'));
+        document.getElementById('ts-sat-slider').value = 100;
+        document.getElementById('ts-bri-slider').value = 100;
+        document.getElementById('ts-tex-slider').value = 100;
+
+        if (typeof pushHistory === 'function') pushHistory();
+    });
+
+    // ==========================================
+    // 7. PRINT RESCUE HOOK
+    // Extracts background from scaled spooler wrappers
+    // ==========================================
+    window.addEventListener('beforeprint', () => {
+        setTimeout(() => {
+            const spooler = document.getElementById('op-print-spooler');
+            if (!spooler) return;
+            
+            const scalers = spooler.querySelectorAll('.op-print-scaler');
+            scalers.forEach(scaler => {
+                const children = Array.from(scaler.children);
+                children.forEach(child => {
+                    if (child.innerHTML.includes('op-theme-container')) {
+                        const pageWrapper = scaler.parentElement;
+                        pageWrapper.insertBefore(child, scaler);
+                        child.style.left = '0px';
+                        child.style.top = '0px';
+                        child.style.width = '100%';
+                        child.style.height = '100%';
+                        child.style.transform = 'none';
+                        const content = child.querySelector('.element-content');
+                        if (content) content.style.transform = 'none';
+                    }
+                });
+            });
+        }, 5);
+    });
+
+    // ==========================================
+    // 8. STACKING ENFORCER
+    // ==========================================
+    setInterval(() => {
+        const theme = document.querySelector('[data-is-theme="true"]');
+        if (theme && theme.style.zIndex !== '0') {
+            theme.style.zIndex = '0';
+        }
+        
+        const border = document.getElementById('native-blueprint-border');
+        if (border && border.style.zIndex !== '2') {
+            border.style.zIndex = '2';
+        }
+    }, 500);
+
+    // ==========================================
+    // 9. THE DELAYED MOUSE-STEALTH DEFENSE
+    // Prevents the Text Box ribbon from opening during dragging
+    // ==========================================
+    let stealthTimer = null;
+    
+    const stealthTheme = () => {
+        clearTimeout(stealthTimer);
+        const theme = document.querySelector('[data-is-theme="true"]');
+        if (theme) {
+            theme.classList.remove('pub-element', 'selected', 'active-element');
+        }
+    };
+    
+    const unstealthTheme = () => {
+        const theme = document.querySelector('[data-is-theme="true"]');
+        if (theme) {
+            if (!theme.classList.contains('pub-element')) {
+                theme.classList.add('pub-element');
+            }
+            theme.classList.remove('selected', 'active-element');
+        }
+    };
+
+    // Strip class immediately when mouse goes down
+    window.addEventListener('mousedown', stealthTheme, true);
+    
+    // Keep it stripped if actively dragging
+    window.addEventListener('mousemove', (e) => {
+        if (e.buttons > 0) stealthTheme();
+    }, true);
+
+    // Wait 150ms AFTER let go before adding the class back
+    window.addEventListener('mouseup', () => {
+        stealthTimer = setTimeout(unstealthTheme, 150);
+    }, true);
+
+    // Handle edge case where mouse is dragged outside the browser window
+    document.addEventListener('mouseleave', () => {
+        stealthTimer = setTimeout(unstealthTheme, 150);
+    }, true);
+
+    // Defend against Ctrl+A (Select All)
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+            stealthTheme();
+            stealthTimer = setTimeout(unstealthTheme, 150); 
+        }
+    }, true);
+
+    // Failsafe: Guarantee theme is fully active before the printer snapshot
+    window.addEventListener('beforeprint', unstealthTheme, true);
+
+    // ==========================================
+    // 10. BIND EVENT LISTENERS
+    // ==========================================
+    const swatches = studioContainer.querySelectorAll('.ts-swatch');
+    swatches.forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            swatches.forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+            applyThemeToCanvas(swatch);
+        });
+    });
+
+    const sliders = studioContainer.querySelectorAll('.ts-slider');
+    sliders.forEach(slider => {
+        slider.addEventListener('input', updateLiveFilters);
+        slider.addEventListener('change', () => {
+            if (typeof pushHistory === 'function') pushHistory();
+        });
+    });
+
+})();
+/* =========================================================================
    V99.0 - UNCLIPPED JUMBO CROP HANDLES (20px)
    (REPLACEMENT FOR V98.0) Bumps handle size to 20px for better ergonomics.
    ========================================================================= */
