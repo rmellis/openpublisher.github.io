@@ -14441,6 +14441,402 @@ window.toggleCrop = function() {
         }
     }, true);
 })();
+/* ========================================================================= 
+   * Thumbnail Minimap Overlay, Bypasses native base64 rendering to 
+   * eliminate CPU lag during element dragging, also utilizes a body-level 
+   * "Glass Vault" to prevent framework reconciliation conflicts, 
+   * and a strict click-tracker to preserve state across multiple pages. 
+   ========================================================================= */ 
+;(function installGlassVaultMinimap() { 
+    console.log("⚡ Glass Vault Minimap initializing..."); 
+
+    const style = document.createElement('style'); 
+    style.innerHTML = ` 
+        /* === SCREEN VIEW === */ 
+        @media screen { 
+            .page-thumb img {  
+                opacity: 0 !important;  
+                visibility: hidden !important;  
+                pointer-events: none !important;  
+            } 
+            .page-thumb {  
+                background-color: #ffffff;  
+                box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);  
+                transition: height 0.2s ease;  
+            } 
+        } 
+
+        /* === PRINT VIEW (LANDSCAPE CRASH FIX) === */ 
+        @media print { 
+            #ts-overlay-wrapper { 
+                position: absolute !important;  
+                display: none !important; 
+                opacity: 0 !important; 
+            } 
+            .ts-glass-panel { display: none !important; } 
+             
+            .page-thumb { 
+                height: auto !important; 
+                width: auto !important; 
+                max-width: 100% !important; 
+                box-sizing: border-box !important; 
+                background-color: transparent !important; 
+                box-shadow: none !important; 
+                page-break-inside: avoid; 
+                margin-bottom: 20px !important; 
+            } 
+             
+            .page-thumb img { 
+                opacity: 1 !important; 
+                visibility: visible !important; 
+                display: block !important; 
+                max-width: 100% !important; 
+                height: auto !important; 
+                object-fit: contain !important; 
+            } 
+        } 
+
+        /* === CORE VAULT UI === */ 
+        .ts-glass-panel { 
+            position: fixed;  
+            overflow: hidden; 
+            border-radius: 4px; 
+            pointer-events: none !important;  
+            z-index: 9999; 
+            will-change: top, left, width, height; 
+            transition: height 0.2s ease; 
+        } 
+
+        .ts-mirror-inner { 
+            position: absolute; 
+            top: 0; left: 0; 
+            transform-origin: top left; 
+        } 
+
+        .ts-mirror-inner * { 
+            pointer-events: none !important; 
+            user-select: none !important; 
+        } 
+    `; 
+    document.head.appendChild(style); 
+
+    // Quarantine Wrapper 
+    let overlayWrapper = document.getElementById('ts-overlay-wrapper'); 
+    if (overlayWrapper) overlayWrapper.remove(); 
+    overlayWrapper = document.createElement('div'); 
+    overlayWrapper.id = 'ts-overlay-wrapper'; 
+
+    overlayWrapper.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden;'; 
+    overlayWrapper.setAttribute('data-html2canvas-ignore', 'true'); 
+    document.body.appendChild(overlayWrapper); 
+
+    let isDragging = false; 
+    let isPrinting = false;  
+    let rafId = null; 
+    let activeElement = null; 
+    let activeClone = null; 
+    let nodeMap = new Map(); 
+
+    // ✨ SIDEBAR CLIPPING OBSERVER ✨
+    // Uses native browser engine to perfectly detect if the sidebar is collapsing and clipping the thumbs
+    const clipObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            // If less than 40% of the thumbnail is visible, it means the sidebar collapsed over it.
+            entry.target.dataset.glassVisible = (entry.intersectionRatio >= 0.4) ? 'true' : 'false';
+        });
+    }, {
+        // Fire callbacks frequently during the slide animation for instant hiding
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0]
+    });
+     
+    // ✨ PRINT HIBERNATION ✨ 
+    const prepareForPrint = () => { 
+        isPrinting = true; 
+        document.querySelectorAll('.page-thumb').forEach(thumb => { 
+            thumb.style.removeProperty('height');  
+            thumb.style.removeProperty('width');  
+        }); 
+    }; 
+
+    const restoreAfterPrint = () => { isPrinting = false; }; 
+
+    window.addEventListener('beforeprint', prepareForPrint); 
+    window.addEventListener('afterprint', restoreAfterPrint); 
+
+    const printQuery = window.matchMedia('print'); 
+    if (printQuery.addEventListener) { 
+        printQuery.addEventListener('change', (e) => { 
+            if (e.matches) prepareForPrint(); 
+            else restoreAfterPrint(); 
+        }); 
+    } 
+
+    let lockedIndex = 0; 
+    let lastLockedIndex = -1;  
+
+    document.addEventListener('mousedown', (e) => { 
+        const thumb = e.target.closest('.page-thumb'); 
+        if (thumb) { 
+            const thumbs = Array.from(document.querySelectorAll('.page-thumb')); 
+            lockedIndex = thumbs.indexOf(thumb); 
+            return; 
+        } 
+
+        const btn = e.target.closest('div, button'); 
+        if (btn && btn.textContent && btn.textContent.toLowerCase().includes('add page')) { 
+            setTimeout(() => { 
+                const thumbs = document.querySelectorAll('.page-thumb'); 
+                lockedIndex = thumbs.length - 1; 
+                buildMap(); 
+            }, 300); 
+        } 
+    }, true); 
+
+    // ========================================== 
+    // 60FPS POSITION TRACKER 
+    // ========================================== 
+    const syncPositions = () => { 
+        if (isPrinting) { 
+            requestAnimationFrame(syncPositions); 
+            return; 
+        } 
+
+        const thumbs = document.querySelectorAll('.page-thumb'); 
+         
+        thumbs.forEach((thumb, index) => { 
+            // Hook new thumbs into the clipping observer
+            if (!thumb.dataset.isObserved) {
+                clipObserver.observe(thumb);
+                thumb.dataset.isObserved = 'true';
+            }
+
+            let panel = document.getElementById('ts-glass-' + index); 
+            if (!panel) { 
+                panel = document.createElement('div'); 
+                panel.id = 'ts-glass-' + index; 
+                panel.className = 'ts-glass-panel'; 
+                overlayWrapper.appendChild(panel); 
+            } 
+
+            const rect = thumb.getBoundingClientRect(); 
+            
+            // Check if the sidebar is collapsing over it
+            const isVisible = thumb.dataset.glassVisible !== 'false';
+
+            if (isVisible && rect.width > 0 && rect.height > 0 && 
+                rect.top < window.innerHeight && rect.bottom > 0 &&
+                rect.left < window.innerWidth && rect.right > 0) { 
+                
+                panel.style.display = 'block'; 
+                
+                // Track horizontal and vertical changes perfectly
+                if (panel.dataset.top !== rect.top + 'px' || 
+                    panel.dataset.height !== rect.height + 'px' ||
+                    panel.dataset.left !== rect.left + 'px' || 
+                    panel.dataset.width !== rect.width + 'px') { 
+                    
+                    panel.style.left = rect.left + 'px'; 
+                    panel.style.top = rect.top + 'px'; 
+                    panel.style.width = rect.width + 'px'; 
+                    panel.style.height = rect.height + 'px'; 
+                    
+                    panel.dataset.top = rect.top + 'px'; 
+                    panel.dataset.height = rect.height + 'px'; 
+                    panel.dataset.left = rect.left + 'px'; 
+                    panel.dataset.width = rect.width + 'px'; 
+                } 
+            } else { 
+                panel.style.display = 'none'; 
+            } 
+        }); 
+
+        for (let i = thumbs.length; i < overlayWrapper.children.length; i++) { 
+            const excess = document.getElementById('ts-glass-' + i); 
+            if (excess) excess.style.display = 'none'; 
+        } 
+
+        requestAnimationFrame(syncPositions); 
+    }; 
+    requestAnimationFrame(syncPositions); 
+
+    // ========================================== 
+    // THE VISUAL BUILDER 
+    // ========================================== 
+    const buildMap = () => { 
+        if (isDragging || isPrinting) return; 
+
+        const paper = document.getElementById('paper'); 
+        const thumbs = document.querySelectorAll('.page-thumb'); 
+         
+        if (!paper || thumbs.length === 0 || lockedIndex < 0 || lockedIndex >= thumbs.length) return; 
+
+        const activePanel = document.getElementById('ts-glass-' + lockedIndex); 
+        const activeThumb = thumbs[lockedIndex]; 
+        if (!activePanel || !activeThumb) return; 
+
+        let inner = activePanel.querySelector('.ts-mirror-inner'); 
+        if (!inner) { 
+            inner = document.createElement('div'); 
+            inner.className = 'ts-mirror-inner'; 
+            activePanel.appendChild(inner); 
+        } 
+
+        if (lockedIndex !== lastLockedIndex) { 
+            nodeMap.clear(); 
+            inner.innerHTML = ''; 
+            lastLockedIndex = lockedIndex; 
+        } 
+
+        const paperAspect = paper.offsetHeight / paper.offsetWidth; 
+        if (paperAspect > 0) { 
+            activeThumb.style.height = `${activeThumb.offsetWidth * paperAspect}px`; 
+        } 
+
+        inner.style.width = paper.offsetWidth + 'px'; 
+        inner.style.height = paper.offsetHeight + 'px'; 
+         
+        const thumbRect = activeThumb.getBoundingClientRect(); 
+         
+        let scaleFactor = 0.15; 
+        let translateX = 0; 
+        let translateY = 0; 
+
+        if (thumbRect.width > 0 && thumbRect.height > 0 && paper.offsetWidth > 0 && paper.offsetHeight > 0) { 
+            const scaleX = thumbRect.width / paper.offsetWidth; 
+            const scaleY = thumbRect.height / paper.offsetHeight; 
+             
+            scaleFactor = Math.min(scaleX, scaleY); 
+            translateX = (thumbRect.width - (paper.offsetWidth * scaleFactor)) / 2; 
+            translateY = (thumbRect.height - (paper.offsetHeight * scaleFactor)) / 2; 
+        } 
+
+        inner.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleFactor})`; 
+
+// ✨ THE BULLETPROOF CLOAKING FIX
+        const sanitizeClone = (node) => { 
+            const stripFrameworkHooks = (n) => {
+                if (n.removeAttribute) {
+                    n.removeAttribute('id'); 
+                    n.removeAttribute('data-is-border'); // This was the missing link causing the crash!
+                }
+                if (n.classList) {
+                    n.classList.remove('page-border-wrapper', 'page-border', 'native-blueprint-border');
+                }
+            };
+            stripFrameworkHooks(node);
+            node.querySelectorAll('*').forEach(stripFrameworkHooks);
+        }; 
+
+        const themeLayer = paper.querySelector('.op-theme-container') || paper.querySelector('[data-is-theme="true"]'); 
+        let cloneTheme = inner.querySelector('.ts-theme-clone'); 
+         
+        if (themeLayer) { 
+            if (!cloneTheme) { 
+                cloneTheme = themeLayer.cloneNode(true); 
+                sanitizeClone(cloneTheme); 
+                cloneTheme.classList.add('ts-theme-clone'); 
+                cloneTheme.style.opacity = '1'; 
+                inner.prepend(cloneTheme);  
+            } else { 
+                cloneTheme.style.cssText = themeLayer.style.cssText; 
+                cloneTheme.style.opacity = '1'; 
+                 
+                const tempTheme = themeLayer.cloneNode(true); 
+                sanitizeClone(tempTheme); 
+                if (cloneTheme.innerHTML !== tempTheme.innerHTML) { 
+                    cloneTheme.innerHTML = tempTheme.innerHTML; 
+                } 
+            } 
+        } else { 
+            if (cloneTheme) cloneTheme.remove(); 
+            const paperBg = window.getComputedStyle(paper).backgroundColor; 
+            if (paperBg && paperBg !== 'rgba(0, 0, 0, 0)') activePanel.style.backgroundColor = paperBg; 
+        } 
+
+        const elements = Array.from(paper.querySelectorAll('.pub-element')); 
+        const currentSet = new Set(elements); 
+
+        for (let [el, clone] of nodeMap.entries()) { 
+            if (!currentSet.has(el)) { 
+                clone.remove(); 
+                nodeMap.delete(el); 
+            } 
+        } 
+
+        elements.forEach(el => { 
+            // ⚠️ CRITICAL ROLLBACK: Do NOT skip the border container here or the preview breaks!
+            // Only skip the theme layer.
+            if (el.getAttribute('data-is-theme') === 'true' || el.querySelector('.op-theme-container')) return; 
+
+            let clone = nodeMap.get(el);
+
+            if (!clone) { 
+                clone = el.cloneNode(true); 
+                sanitizeClone(clone); 
+                clone.classList.remove('selected', 'active-element', 'hovered'); 
+                clone.querySelectorAll('.resize-handle, .rotate-stick, .rotate-handle').forEach(ui => ui.remove()); 
+                clone.style.opacity = '1'; 
+                inner.appendChild(clone); 
+                nodeMap.set(el, clone); 
+            } else { 
+                clone.style.cssText = el.style.cssText; 
+                clone.style.opacity = '1'; 
+                clone.classList.remove('selected', 'active-element', 'hovered'); 
+
+                const tempNode = el.cloneNode(true); 
+                sanitizeClone(tempNode); 
+                tempNode.querySelectorAll('.resize-handle, .rotate-stick, .rotate-handle').forEach(ui => ui.remove()); 
+                 
+                if (clone.innerHTML !== tempNode.innerHTML) { 
+                    clone.innerHTML = tempNode.innerHTML; 
+                } 
+            } 
+        }); 
+    }; 
+
+    // ========================================== 
+    // HARDWARE ACCELERATED DRAG LOOP 
+    // ========================================== 
+    const updateActiveClone = () => { 
+        if (!activeElement || !activeClone) return; 
+         
+        activeClone.style.left = activeElement.style.left; 
+        activeClone.style.top = activeElement.style.top; 
+        activeClone.style.width = activeElement.style.width; 
+        activeClone.style.height = activeElement.style.height; 
+        activeClone.style.transform = activeElement.style.transform; 
+
+        if (isDragging) rafId = requestAnimationFrame(updateActiveClone); 
+    }; 
+
+    window.addEventListener('mousedown', (e) => { 
+        const el = e.target.closest('.pub-element'); 
+        if (el) { 
+            isDragging = true; 
+            activeElement = el; 
+            activeClone = nodeMap.get(el); 
+            if (activeClone) activeClone.style.zIndex = '9999'; 
+            if (rafId) cancelAnimationFrame(rafId); 
+            updateActiveClone(); 
+        } 
+    }, true); 
+
+    const endInteraction = () => { 
+        if (isDragging) { 
+            isDragging = false; 
+            activeElement = null; 
+            activeClone = null; 
+            if (rafId) cancelAnimationFrame(rafId); 
+            buildMap();  
+        } 
+    }; 
+
+    window.addEventListener('mouseup', endInteraction, true); 
+     
+    setInterval(() => { if (!isDragging && !isPrinting) buildMap(); }, 800); 
+    setTimeout(buildMap, 500); 
+
+})();
 /* =========================================================================
    Border Defender Module (+ Anti-Fade Patch)
    - Safely ignores imported .doc/.pub files because they are <img> based.
@@ -14560,6 +14956,60 @@ window.toggleCrop = function() {
     document.addEventListener('mouseleave', () => { stealthTimer = setTimeout(stopStealth, 150); }, true);
     window.addEventListener('beforeprint', stopStealth, true);
     
+})();
+/* =========================================================================
+   ADD-ON PATCH: THE GEOMETRY FIX
+   - Abandons hacky z-index rules and hole-punches.
+   - Uses CSS polygon geometry to physically shape the glass panel.
+   - Shaves a 4px margin to reveal the native green borders underneath.
+   - Slices a diagonal chamfer in the top-right to reveal the native Red X.
+   ========================================================================= */
+;(function applyConcaveCradle() { 
+    const style = document.createElement('style'); 
+    style.innerHTML = ` 
+        .ts-glass-panel { 
+            /* === PERFECT MASK CUTOUT === */ 
+            --cut-x: 4px;      
+            --cut-y: 10px;     
+            --cut-radius: 10px;  
+
+            /* === BORDER VISIBILITY & SHAPE === */ 
+            --border-inset: 1.16px;  
+            --panel-radius: 4px; 
+
+            /* Master Mask - Punches the empty hole */
+            -webkit-mask-image: radial-gradient( 
+                circle var(--cut-radius) at calc(100% + var(--cut-x)) var(--cut-y),  
+                transparent calc(var(--cut-radius) - 0.5px),  
+                black calc(var(--cut-radius) + 0.5px) 
+            ) !important; 
+            mask-image: radial-gradient( 
+                circle var(--cut-radius) at calc(100% + var(--cut-x)) var(--cut-y),  
+                transparent calc(var(--cut-radius) - 0.5px),  
+                black calc(var(--cut-radius) + 0.5px) 
+            ) !important; 
+
+            /* Sharp top-right corner to prevent border bleeding */ 
+            clip-path: inset(var(--border-inset) round var(--panel-radius) 0 var(--panel-radius) var(--panel-radius)) !important; 
+            border-radius: var(--panel-radius) 0 var(--panel-radius) var(--panel-radius) !important; 
+            overflow: hidden !important; 
+        } 
+
+        /* === THE STRAIGHT BORDERS === */
+        .ts-glass-panel::after {
+            content: '' !important;
+            position: absolute !important;
+            inset: 0 !important;
+            pointer-events: none !important;
+            
+            /* Draws the straight borders only (matches the sharp top right corner) */
+            border-radius: calc(var(--panel-radius) + var(--border-inset)) 0 calc(var(--panel-radius) + var(--border-inset)) calc(var(--panel-radius) + var(--border-inset)) !important;
+            box-shadow: inset 0 0 0 calc(var(--border-inset) + 0.5px) #007670 !important;
+            
+            /* (The curved inner rim code has been completely deleted from here) */
+        }
+    `; 
+    document.head.appendChild(style); 
 })();
 /* =========================================================================
     The Theme Studio to replace the old themes on the page design tab.
