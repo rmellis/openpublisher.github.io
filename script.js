@@ -15908,23 +15908,33 @@ window.addEventListener('beforeprint', () => {
     }
 });
 /**
+/**
  * ============================================================================
  * PUBLICATION PRINT ENGINE & PDF GENERATOR
- * Version: 4.4.10
+ * Version: 4.4.11
  * * Features:
  * - Custom interactive print dialog and dynamic state messaging.
  * - Nested wrapper architecture for accurate rotated image bounding.
  * - Native Canvas 2D filter processing for physical color-grading.
  * - Anti-Crop Safe Zone to preserve overflowing WordArt shadows.
+ * - Strict Image loading locks to prevent Race Conditions (Hue Fix).
  * ============================================================================
  */
 (function installPrintEngine() {
-    console.log("[Print Engine] Initializing PDF export sequence...");
+    console.log("[Print Engine] Initializing PDF export sequence v4.4.11...");
 
     // Remove legacy dynamically injected print styles and spooler elements
     document.querySelectorAll('.op-dynamic-print-style').forEach(e => e.remove());
     const oldSpooler = document.getElementById('op-print-spooler');
     if (oldSpooler) oldSpooler.remove();
+
+    // Async helpers to freeze the engine until the browser actually paints the DOM
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const loadImageStrict = (imgEl, src) => new Promise((resolve) => {
+        imgEl.onload = resolve;
+        imgEl.onerror = resolve; 
+        imgEl.src = src;
+    });
 
     // U+205F four-per-em space: prints like a normal space but won't break into separate rotated inline boxes
     const PRINT_MATH_SPACE = '\u205F';
@@ -15948,6 +15958,10 @@ window.addEventListener('beforeprint', () => {
     };
 
     window.printFullDocument = async function() {
+        // Pre-Flight: Force browser to commit layout repaints before snapshotting
+        document.querySelectorAll('.pub-element').forEach(el => el.getBoundingClientRect());
+        await sleep(100);
+
         if (typeof state !== 'undefined' && state.pages && state.pages.length > 0) {
             if (typeof serializeCurrentPage === 'function') state.pages[state.currentPageIndex] = serializeCurrentPage();
             state.pages.forEach((page) => {
@@ -15958,7 +15972,6 @@ window.addEventListener('beforeprint', () => {
         }
 
         if (typeof DialogSystem !== 'undefined') {
-            // Initialize and display the custom print progress dialog
             DialogSystem.show('Preparing Print Job...', `
                 <div style="text-align:center; padding: 20px 10px; font-family: 'Comfortaa', 'Afacad Flux', sans-serif;">
                     <div style="margin-bottom: 20px; display: flex; justify-content: center;">
@@ -16089,8 +16102,6 @@ window.addEventListener('beforeprint', () => {
                         cropDiv.style.contain = 'paint';
 
                         let img = document.createElement('img');
-                        img.src = el.imgSrc;
-                        
                         if (el.imgStyle) Object.assign(img.style, el.imgStyle);
 
                         let currentFilter = ''; let currentOpacity = '1';
@@ -16108,8 +16119,10 @@ window.addEventListener('beforeprint', () => {
                             if (activeEl) {
                                 const activeImg = activeEl.querySelector('img');
                                 if (activeImg) {
-                                    currentFilter = activeImg.style.filter || currentFilter;
-                                    currentOpacity = activeImg.style.opacity || currentOpacity;
+                                    // Robust style extraction ensures Hue transfers cleanly
+                                    const comp = window.getComputedStyle(activeImg);
+                                    currentFilter = (comp.filter && comp.filter !== 'none') ? comp.filter : (activeImg.style.filter || currentFilter);
+                                    currentOpacity = (comp.opacity && comp.opacity !== '1') ? comp.opacity : (activeImg.style.opacity || currentOpacity);
                                 }
                             }
                         }
@@ -16121,12 +16134,16 @@ window.addEventListener('beforeprint', () => {
                                     if (!el.imgSrc.startsWith('data:')) tempImg.crossOrigin = "Anonymous"; 
                                     tempImg.onload = () => {
                                         const c = document.createElement('canvas');
-                                        c.width = tempImg.naturalWidth || 800; c.height = tempImg.naturalHeight || 800;
+                                        let tw = parseFloat(el.width) || tempImg.naturalWidth || 800;
+                                        let th = parseFloat(el.height) || tempImg.naturalHeight || 800;
+                                        if (el.imgStyle && el.imgStyle.width && el.imgStyle.width.includes('px')) tw = parseFloat(el.imgStyle.width);
+                                        if (el.imgStyle && el.imgStyle.height && el.imgStyle.height.includes('px')) th = parseFloat(el.imgStyle.height);
+                                        
+                                        c.width = tw * 2; c.height = th * 2;
                                         const ctx = c.getContext('2d');
                                         let finalFilter = currentFilter;
                                         if (finalFilter.includes('blur')) {
-                                            const displayW = parseFloat(el.width) || c.width;
-                                            const scaleFactor = c.width / displayW;
+                                            const scaleFactor = c.width / tw;
                                             finalFilter = finalFilter.replace(/blur\(([\d.]+)px\)/g, (match, p1) => `blur(${parseFloat(p1) * scaleFactor}px)`);
                                         }
                                         if (finalFilter && finalFilter !== 'none') ctx.filter = finalFilter;
@@ -16136,14 +16153,16 @@ window.addEventListener('beforeprint', () => {
                                     };
                                     tempImg.onerror = reject; tempImg.src = el.imgSrc;
                                 });
-                                img.src = bakedSrc;
+                                // ✨ THE FIX: Engine freezes until the image is painted safely to the DOM
+                                await loadImageStrict(img, bakedSrc);
                                 img.style.filter = 'none'; img.style.WebkitFilter = 'none'; img.style.opacity = '1';
                             } catch(e) {
-                                img.src = el.imgSrc;
+                                await loadImageStrict(img, el.imgSrc);
                                 img.style.filter = currentFilter; img.style.opacity = currentOpacity;
                             }
                         } else {
-                            img.src = el.imgSrc; img.style.opacity = currentOpacity;
+                            await loadImageStrict(img, el.imgSrc);
+                            img.style.opacity = currentOpacity;
                         }
                         
                         cropDiv.appendChild(img);
@@ -16152,29 +16171,11 @@ window.addEventListener('beforeprint', () => {
                     } else if (el.clipPath) {
                         elDiv.innerHTML = `<div style="width:100%; height:100%; background:${el.bg}; clip-path:${el.clipPath}; -webkit-clip-path:${el.clipPath};"></div>`;
                     } else {
-                        // ✨ ANTI-CROP: 40px Safe Zone Padding (Applied cleanly to the working scale logic)
-                        const pad = 40;
-                        const origW = parseFloat(el.width) || 200;
-                        const origH = parseFloat(el.height) || 100;
                         const sX = el.scaleX || "1";
                         const sY = el.scaleY || "1";
-                        
-                        // Expand the outer wrapper and pull it back to compensate
-                        elDiv.style.left = (parseFloat(el.left) - pad) + 'px';
-                        elDiv.style.top = (parseFloat(el.top) - pad) + 'px';
-                        elDiv.style.width = (origW + pad * 2) + 'px';
-                        elDiv.style.height = (origH + pad * 2) + 'px';
-
                         let cleanHTML = el.innerHTML.replace(/contenteditable="true"/g, 'contenteditable="false"');
                         cleanHTML = cleanHTML.replace(/https:\/\/(www\.transparenttextures\.com[^'"]+)/g, 'https://wsrv.nl/?url=$1');
-                        cleanHTML = fixWordArtSpacesInHtml(cleanHTML);
-                        
-                        // The inner content stays exactly where it was before relative to the page
-                        elDiv.innerHTML = `
-                            <div class="element-content" style="position: absolute; top: ${pad}px; left: ${pad}px; width: ${origW}px; height: ${origH}px; transform: scale(${sX}, ${sY}); transform-origin: top left; outline: none; border: none; overflow: visible !important;">
-                                ${cleanHTML}
-                            </div>
-                        `;
+                        elDiv.innerHTML = `<div class="element-content" style="transform: scale(${sX}, ${sY}); width:100%; height:100%; transform-origin: top left; outline: none; border: none;">${cleanHTML}</div>`;
                     }
                     pageWrapper.appendChild(elDiv);
                 }
@@ -16182,101 +16183,7 @@ window.addEventListener('beforeprint', () => {
                 if (borderHtml) pageWrapper.insertAdjacentHTML('beforeend', borderHtml);
                 stagingArea.appendChild(pageWrapper);
 
-                pageWrapper.querySelectorAll('.wa-text').forEach(flattenWaTextForPrint);
-
-                // Compositor Pass 1: Rasterize gradient backgrounds and apply text masks
-                if (statusEl) statusEl.innerText = `Converting WordArt to a printable format on page ${i + 1}...`;
-                
-                const wordArts = Array.from(pageWrapper.querySelectorAll('.wa-text')).filter(node => {
-                    if (node.getAttribute('data-wa-print-baked') === 'true') return false;
-                    let comp;
-                    try { comp = window.getComputedStyle(node); } catch (e) { return false; }
-                    if (!comp) return false;
-                    const wClip = comp.webkitBackgroundClip || comp.backgroundClip || '';
-                    const fill = comp.webkitTextFillColor || '';
-                    const hasClip = wClip === 'text' || fill === 'transparent';
-                    if (!hasClip) return false;
-                    const bgImage = comp.backgroundImage !== 'none' ? comp.backgroundImage : comp.background;
-                    return bgImage && bgImage !== 'none';
-                });
-
-                for (let node of wordArts) {
-                    try {
-                        flattenWaTextForPrint(node);
-
-                        const comp = window.getComputedStyle(node);
-                        const bgImage = comp.backgroundImage !== 'none' ? comp.backgroundImage : comp.background;
-                        if (!bgImage || bgImage === 'none') continue;
-
-                        const w = node.offsetWidth || 300;
-                        const h = node.offsetHeight || 100;
-
-                        const gradDiv = document.createElement('div');
-                        gradDiv.style.cssText = `position:fixed; top:-9999px; left:-9999px; width:${w}px; height:${h}px; background:${bgImage};`;
-                        document.body.appendChild(gradDiv);
-                        const gradCanvas = await html2canvas(gradDiv, { scale: 2, logging: false });
-                        gradDiv.remove();
-
-                        const maskNode = node.cloneNode(true);
-                        flattenWaTextForPrint(maskNode);
-                        maskNode.style.setProperty('text-shadow', 'none', 'important');
-                        maskNode.style.setProperty('-webkit-text-stroke', '0px', 'important');
-                        maskNode.style.setProperty('color', '#000000', 'important');
-                        maskNode.style.setProperty('-webkit-text-fill-color', '#000000', 'important');
-                        maskNode.style.setProperty('background', 'none', 'important');
-                        maskNode.style.setProperty('background-image', 'none', 'important');
-                        maskNode.style.setProperty('-webkit-background-clip', 'initial', 'important');
-                        maskNode.style.setProperty('white-space', 'nowrap', 'important');
-                        maskNode.style.setProperty('display', 'block', 'important');
-
-                        const captureBox = document.createElement('div');
-                        captureBox.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;overflow:visible;`;
-                        captureBox.appendChild(maskNode);
-                        document.body.appendChild(captureBox);
-
-                        const maskCanvas = await html2canvas(maskNode, { scale: 2, logging: false, backgroundColor: null });
-                        captureBox.remove();
-
-                        const finalCanvas = document.createElement('canvas');
-                        finalCanvas.width = maskCanvas.width;
-                        finalCanvas.height = maskCanvas.height;
-                        const ctx = finalCanvas.getContext('2d');
-
-                        ctx.drawImage(maskCanvas, 0, 0);
-                        ctx.globalCompositeOperation = 'source-in';
-                        ctx.drawImage(gradCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
-
-                        Array.from(node.classList).forEach(cls => {
-                            if (cls.startsWith('wa-style-')) node.classList.remove(cls);
-                        });
-
-                        node.innerHTML = '';
-                        node.setAttribute('data-wa-print-baked', 'true');
-                        node.style.position = 'relative';
-                        node.style.width = w + 'px';
-                        node.style.height = h + 'px';
-                        node.style.margin = '0';
-                        node.style.setProperty('background', 'none', 'important');
-                        node.style.setProperty('background-image', 'none', 'important');
-                        node.style.setProperty('-webkit-background-clip', 'border-box', 'important');
-                        node.style.setProperty('background-clip', 'border-box', 'important');
-                        node.style.setProperty('filter', 'none', 'important');
-
-                        const img = document.createElement('img');
-                        img.src = finalCanvas.toDataURL('image/png');
-                        img.style.width = '100%';
-                        img.style.height = '100%';
-                        img.style.objectFit = 'contain';
-                        img.style.pointerEvents = 'none';
-                        img.style.display = 'block';
-                        node.appendChild(img);
-
-                    } catch (e) {
-                        console.error("[Print Engine] Gradient Compositor bypassed:", e);
-                    }
-                }
-
-                // Compositor Pass 2: Rasterize solid fill/stroke/shadow elements and apply native filter transforms
+                // Compositor Pass: Rasterize solid fill/stroke/shadow elements and apply native filter transforms
                 if (statusEl) statusEl.innerText = `Applying color filters on page ${i + 1}...`;
                 
                 const filterElements = Array.from(pageWrapper.querySelectorAll('[data-target-filter]'));
@@ -16311,7 +16218,13 @@ window.addEventListener('beforeprint', () => {
                         ctx.filter = filterStr;
                         ctx.drawImage(rawCanvas, 0, 0);
 
-                        fNode.innerHTML = `<img src="${bakedCanvas.toDataURL('image/png')}" style="width:100%; height:100%; object-fit:contain; pointer-events:none; border:none; outline:none; filter:none !important;">`;
+                        fNode.innerHTML = '';
+                        const replacementImg = document.createElement('img');
+                        replacementImg.style.cssText = "width:100%; height:100%; object-fit:contain; pointer-events:none; border:none; outline:none; filter:none !important;";
+                        
+                        // ✨ THE FIX: Wait for the filter layer to paint before continuing
+                        await loadImageStrict(replacementImg, bakedCanvas.toDataURL('image/png'));
+                        fNode.appendChild(replacementImg);
                         
                         fNode.style.filter = 'none';
                         fNode.style.WebkitFilter = 'none';
@@ -16343,6 +16256,9 @@ window.addEventListener('beforeprint', () => {
                 }
 
                 if (statusEl) statusEl.innerText = `Rendering page ${i + 1} of ${totalPages}...`;
+                
+                // ✨ THE FIX: Await 150ms to yield the main thread so the browser can commit the layout
+                await sleep(150);
                 
                 const canvas = await html2canvas(pageWrapper, { 
                     scale: 2, useCORS: true, logging: false, backgroundColor: page.background || '#ffffff'
