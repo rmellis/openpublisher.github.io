@@ -15102,7 +15102,7 @@ window.toggleCrop = function() {
         { c1: '#ef4444', url: 'https://www.transparenttextures.com/patterns/brick-wall.png', icon: 'fa-th-large' }
     ];
 
-    // ==========================================
+// ==========================================
     // 4. BUILD THE UI DOM
     // ==========================================
     const studioContainer = document.createElement('div');
@@ -15131,16 +15131,16 @@ window.toggleCrop = function() {
             
             <div class="ts-sliders">
                 <div class="ts-slider-group">
-                    <label>Saturation</label>
-                    <input type="range" id="ts-sat-slider" class="ts-slider" min="0" max="200" value="100">
+                    <label style="white-space: nowrap; padding-right: 10px;">Saturation <span style="font-size: 11px; color: #888; margin-left: 2px;">N/A</span></label>
+                    <input type="range" id="ts-sat-slider" class="ts-slider" min="0" max="200" value="100" disabled style="filter: grayscale(100%); opacity: 0.5; cursor: not-allowed;">
                 </div>
                 <div class="ts-slider-group">
-                    <label>Brightness</label>
-                    <input type="range" id="ts-bri-slider" class="ts-slider" min="50" max="150" value="100">
+                    <label style="white-space: nowrap; padding-right: 10px;">Brightness <span style="font-size: 11px; color: #888; margin-left: 2px;">N/A</span></label>
+                    <input type="range" id="ts-bri-slider" class="ts-slider" min="50" max="150" value="100" disabled style="filter: grayscale(100%); opacity: 0.5; cursor: not-allowed;">
                 </div>
                 <div class="ts-slider-group">
-                    <label>Texture</label>
-                    <input type="range" id="ts-tex-slider" class="ts-slider" min="0" max="100" value="100">
+                    <label style="white-space: nowrap; padding-right: 10px;">Texture <span style="font-size: 11px; color: #888; margin-left: 2px;">N/A</span></label>
+                    <input type="range" id="ts-tex-slider" class="ts-slider" min="0" max="100" value="100" disabled style="filter: grayscale(100%); opacity: 0.5; cursor: not-allowed;">
                 </div>
             </div>
         </div>
