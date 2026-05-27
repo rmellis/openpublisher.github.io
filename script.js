@@ -16555,33 +16555,7 @@ window.addEventListener('beforeprint', () => {
 (function installBetaWordArtV6() {
     console.log("🛠️ WordArt Engine v6.0 (Native UI & 200 Styles) initializing...");
 
-    // 1. Inject the UI Button into the Insert Ribbon (Graphics Group)
-    setTimeout(() => {
-        const insertRibbon = document.getElementById('ribbon-insert');
-        if (insertRibbon && !document.getElementById('beta-wa-ribbon-btn')) {
-            const buttonHTML = `
-                <div class="tool-btn" id="beta-wa-ribbon-btn" onclick="showBetaWordArtModal()" title="Insert Image-Based WordArt">
-                    <div style="position:relative; display:flex; justify-content:center; align-items:center; width:26px; height:22px;">
-                        <i class="fas fa-font" style="font-size: 24px; color: var(--pub-dark, #005a55); margin:0;"></i>
-                    </div>
-                    <span style="line-height:1.1; text-align:center;">WordArt<br><span style="color:#d97706; font-size:9px; font-weight:bold;">(BETA)</span></span>
-                </div>
-            `;
-            
-            const groups = insertRibbon.querySelectorAll('.group');
-            const graphicsGroup = Array.from(groups).find(g => g.querySelector('.group-label')?.innerText === 'Graphics');
-            
-            if (graphicsGroup) {
-                const label = graphicsGroup.querySelector('.group-label');
-                if (label) label.insertAdjacentHTML('beforebegin', buttonHTML);
-            } else {
-                const newGroup = document.createElement('div');
-                newGroup.className = 'group';
-                newGroup.innerHTML = buttonHTML + '<div class="group-label">WordArt (Beta)</div>';
-                insertRibbon.appendChild(newGroup);
-            }
-        }
-    }, 1500);
+    // 1. (Native Ribbon UI defined in index.html)
 
     // 2. The Core Canvas Rendering Engine
     const generateWordArtPNG = async (text, styleId) => {

@@ -190,7 +190,14 @@
         </div>
         <div class="group">
             <div class="tool-btn" onclick="toggleShapeMenu(this); event.stopPropagation();"><i class="fas fa-shapes"></i>Shapes <i class="fas fa-caret-down"></i></div>
-            <div class="tool-btn" onclick="showWordArtModal()"><i class="fas fa-text-width"></i>WordArt</div>
+            <div class="tool-btn" onclick="showWordArtModal()">
+                <i class="fas fa-text-width"></i>
+                <span style="line-height:1.1; text-align:center;">WordArt<br><span style="color:#d97706; font-size:9px; font-weight:bold;">(LEGACY)</span></span>
+            </div>
+            <div class="tool-btn" id="beta-wa-ribbon-btn" onclick="if(typeof window.showBetaWordArtModal === 'function') window.showBetaWordArtModal()" title="Insert Image-Based WordArt">
+                <i class="fas fa-font"></i>
+                <span style="line-height:1.1; text-align:center;">WordArt<br><span style="color:#d97706; font-size:9px; font-weight:bold;">(BETA)</span></span>
+            </div>
             <div class="tool-btn" onclick="initBasicBorders(); toggleBorderMenu(this); event.stopPropagation();"><i class="fas fa-border-style"></i>Borders</div>
             <div class="group-label">Graphics</div>
         </div>
