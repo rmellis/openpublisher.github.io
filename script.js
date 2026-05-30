@@ -4818,6 +4818,66 @@ const ContextMenuSystem = {
             }
             // --- 3. TEXT BOX CONTEXT MENU ---
             else if (isText || isWordArt) {
+                let clickedWord = "";
+                let clickedWordRange = null;
+
+                const extractWordFromRange = (r, offset) => {
+                    if (r && r.startContainer.nodeType === 3) {
+                        const text = r.startContainer.textContent;
+                        let start = offset, end = offset;
+                        while (start > 0 && /[A-Za-z0-9_']/.test(text[start - 1])) start--;
+                        while (end < text.length && /[A-Za-z0-9_']/.test(text[end])) end++;
+                        const w = text.substring(start, end).trim();
+                        if (w) {
+                            const newRange = document.createRange();
+                            newRange.setStart(r.startContainer, start);
+                            newRange.setEnd(r.startContainer, end);
+                            return { word: w, range: newRange };
+                        }
+                    }
+                    return null;
+                };
+
+                const sel = window.getSelection();
+                
+                // 1. Try to use exactly what the user highlighted (if they highlighted a specific word)
+                if (sel && sel.toString().trim() && sel.rangeCount > 0) {
+                    const selText = sel.toString().trim();
+                    if (selText.split(/\\s+/).length === 1) { // Single word highlighted
+                        clickedWord = selText;
+                        clickedWordRange = sel.getRangeAt(0);
+                    }
+                }
+
+                // 2. Try the exact click coordinates
+                if (!clickedWord && document.caretRangeFromPoint) {
+                    const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+                    if (r) {
+                        const res = extractWordFromRange(r, r.startOffset);
+                        if (res) { clickedWord = res.word; clickedWordRange = res.range; }
+                    }
+                } 
+                else if (!clickedWord && document.caretPositionFromPoint) {
+                    const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+                    if (pos) {
+                        const res = extractWordFromRange({startContainer: pos.offsetNode}, pos.offset);
+                        if (res) { clickedWord = res.word; clickedWordRange = res.range; }
+                    }
+                }
+
+                // 3. Fallback to current cursor position
+                if (!clickedWord && sel && sel.rangeCount > 0 && sel.isCollapsed) {
+                    const r = sel.getRangeAt(0);
+                    const res = extractWordFromRange(r, r.startOffset);
+                    if (res) { clickedWord = res.word; clickedWordRange = res.range; }
+                }
+                
+                if (clickedWord && clickedWordRange) {
+                    window._currentSpellCheckWord = clickedWord;
+                    window._currentSpellCheckRange = clickedWordRange;
+                    html += '<div id="spell-check-results"></div>';
+                }
+
                 html += this.buildItem('Text Fit: Best Fit', 'fa-compress-arrows-alt', 'ContextMenuActions.bestFitText()');
                 html += this.buildItem('Drop Cap', 'fa-heading', 'ContextMenuActions.dropCap()');
                 html += this.buildDivider();
@@ -4857,6 +4917,46 @@ const ContextMenuSystem = {
         this.menuEl.innerHTML = html;
         this.menuEl.style.display = 'block';
 
+        // Spell Check Async Fetch
+        if (window._currentSpellCheckWord) {
+            const spellDiv = document.getElementById('spell-check-results');
+            if (spellDiv) {
+                spellDiv.innerHTML = `<div class="pub-context-item" style="color:#777; font-style:italic; font-size:12px; pointer-events:none;"><i class="fas fa-spinner fa-spin"></i> Checking spelling...</div><div class="pub-context-divider"></div>`;
+                
+                fetch(`https://api.languagetool.org/v2/check`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `language=en-US&text=${encodeURIComponent(window._currentSpellCheckWord)}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const spellDiv2 = document.getElementById('spell-check-results');
+                    if (!spellDiv2) return;
+                    if (data.matches && data.matches.length > 0) {
+                        const match = data.matches[0];
+                        if (match.replacements && match.replacements.length > 0) {
+                            let newHtml = '';
+                            const limit = Math.min(3, match.replacements.length);
+                            for(let i=0; i<limit; i++) {
+                                const suggestion = match.replacements[i].value.replace(/'/g, "\\'");
+                                newHtml += this.buildItem(`<b>${suggestion}</b>`, 'fa-magic', `ContextMenuActions.applySpelling('${suggestion}')`);
+                            }
+                            newHtml += this.buildDivider();
+                            spellDiv2.innerHTML = newHtml;
+                            return;
+                        }
+                    }
+                    // No matches
+                    spellDiv2.innerHTML = `<div class="pub-context-item" style="color:#777; font-size:12px; pointer-events:none;"><i class="fas fa-check"></i> No spelling suggestions</div><div class="pub-context-divider"></div>`;
+                }).catch(e => {
+                    const spellDiv2 = document.getElementById('spell-check-results');
+                    if (spellDiv2) spellDiv2.innerHTML = `<div class="pub-context-item" style="color:#e74c3c; font-size:12px; pointer-events:none;"><i class="fas fa-exclamation-triangle"></i> Spellcheck failed</div><div class="pub-context-divider"></div>`;
+                    console.error("Spellcheck error:", e);
+                });
+            }
+            window._currentSpellCheckWord = "";
+        }
+
         // Keep menu on screen (Clamp to viewport)
         const rect = this.menuEl.getBoundingClientRect();
         let x = e.clientX;
@@ -4886,6 +4986,20 @@ const ContextMenuSystem = {
 // --- ACTION LOGIC FOR NEW CONTEXT FEATURES ---
 const ContextMenuActions = {
     
+    applySpelling: function(suggestion) {
+        const range = window._currentSpellCheckRange;
+        if (range && range.startContainer) {
+            const text = range.startContainer.textContent;
+            const before = text.substring(0, range.startOffset);
+            const after = text.substring(range.endOffset);
+            range.startContainer.textContent = before + suggestion + after;
+            pushHistory();
+            if (state.selectedEl) {
+                state.selectedEl.focus();
+            }
+        }
+    },
+
     // -- Page Features --
     formatBackground: function() {
         const form = `<div class="input-group"><label>Solid Color:</label><input type="color" id="ctx-bg-color" value="#ffffff"></div>`;
