@@ -4791,7 +4791,8 @@ const ContextMenuSystem = {
             const isImage = el.querySelector('img');
             const isShape = el.getAttribute('data-type') === 'shape';
             const isWordArt = el.querySelector('.wa-text');
-            const isText = !isImage && !isShape && !isWordArt;
+            const isTable = el.querySelector('table');
+            const isText = !isImage && !isShape && !isWordArt && !isTable;
 
             // --- 2. PICTURE CONTEXT MENU ---
             if (isImage) {
@@ -4808,6 +4809,19 @@ const ContextMenuSystem = {
                 html += this.buildItem('Drop Cap', 'fa-heading', 'ContextMenuActions.dropCap()');
                 html += this.buildDivider();
                 html += this.buildItem('Format Text Box', 'fa-border-style', 'ContextMenuActions.formatTextBox()');
+            }
+            // --- 3.5. TABLE CONTEXT MENU ---
+            else if (isTable) {
+                html += this.buildItem('Insert Row Above', 'fa-arrow-up', 'if(window.ContextRibbonActions) ContextRibbonActions.insertRowAbove()');
+                html += this.buildItem('Insert Row Below', 'fa-arrow-down', 'if(window.ContextRibbonActions) ContextRibbonActions.insertRowBelow()');
+                html += this.buildItem('Insert Column Left', 'fa-arrow-left', 'if(window.ContextRibbonActions) ContextRibbonActions.insertColLeft()');
+                html += this.buildItem('Insert Column Right', 'fa-arrow-right', 'if(window.ContextRibbonActions) ContextRibbonActions.insertColRight()');
+                html += this.buildDivider();
+                html += this.buildItem('Merge Cell Right', 'fa-object-group', 'if(window.ContextRibbonActions) ContextRibbonActions.mergeRight()');
+                html += this.buildItem('Merge Cell Down', 'fa-object-group', 'if(window.ContextRibbonActions) ContextRibbonActions.mergeDown()');
+                html += this.buildDivider();
+                html += this.buildItem('Delete Row', 'fa-minus-circle', 'if(window.ContextRibbonActions) ContextRibbonActions.deleteRow()');
+                html += this.buildItem('Delete Column', 'fa-minus-circle', 'if(window.ContextRibbonActions) ContextRibbonActions.deleteCol()');
             }
             // --- 4. SHAPE CONTEXT MENU ---
             else if (isShape) {
@@ -12802,6 +12816,41 @@ window.handleMouseUp = function() {
         }
     };
 
+    ContextRibbonActions.mergeRight = function() {
+        const cell = this.getActiveCell();
+        if (!cell) return;
+        const nextCell = cell.nextElementSibling;
+        if (!nextCell) return;
+        
+        let colSpan1 = parseInt(cell.getAttribute('colspan') || 1);
+        let colSpan2 = parseInt(nextCell.getAttribute('colspan') || 1);
+        
+        cell.setAttribute('colspan', colSpan1 + colSpan2);
+        cell.innerHTML += '<br>' + nextCell.innerHTML;
+        nextCell.remove();
+        pushHistory();
+    };
+
+    ContextRibbonActions.mergeDown = function() {
+        const cell = this.getActiveCell();
+        if (!cell) return;
+        const row = cell.parentElement;
+        const nextRow = row.nextElementSibling;
+        if (!nextRow) return;
+        
+        const cellIndex = Array.from(row.children).indexOf(cell);
+        const nextCell = nextRow.children[cellIndex];
+        if (!nextCell) return;
+        
+        let rowSpan1 = parseInt(cell.getAttribute('rowspan') || 1);
+        let rowSpan2 = parseInt(nextCell.getAttribute('rowspan') || 1);
+        
+        cell.setAttribute('rowspan', rowSpan1 + rowSpan2);
+        cell.innerHTML += '<br>' + nextCell.innerHTML;
+        nextCell.remove();
+        pushHistory();
+    };
+
     ContextRibbonActions.cellAlign = function(vAlign, hAlign) {
         const cell = this.getActiveCell();
         if (cell) {
@@ -12886,6 +12935,396 @@ window.handleMouseUp = function() {
         }
     };
 
+    ContextRibbonActions.applyTemplate = function(type) {
+        const table = getTable();
+        if (!table) return;
+        
+        table.style.borderCollapse = 'separate';
+        table.style.borderSpacing = '0';
+        table.style.overflow = 'hidden';
+        table.style.borderRadius = '0px';
+        table.style.border = '1px solid #000';
+        table.style.boxShadow = 'none';
+        for(let r=0; r<table.rows.length; r++) {
+            for(let c=0; c<table.rows[r].cells.length; c++) {
+                table.rows[r].cells[c].style.border = 'none';
+                table.rows[r].cells[c].style.borderRight = '1px solid #000';
+                table.rows[r].cells[c].style.borderBottom = '1px solid #000';
+                table.rows[r].cells[c].style.backgroundColor = 'transparent';
+                table.rows[r].cells[c].style.color = '#000';
+                table.rows[r].cells[c].style.fontWeight = 'normal';
+                table.rows[r].cells[c].style.padding = '6px';
+            }
+        }
+
+        if (type === 'modern') {
+            table.style.border = '1px solid #ccc';
+            table.style.borderRadius = '8px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #ccc';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #ccc';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = 'var(--pub-color)';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    } else if (r % 2 === 1) {
+                        table.rows[r].cells[c].style.backgroundColor = '#f9f9f9';
+                    }
+                }
+            }
+        } else if (type === 'minimal') {
+            table.style.border = 'none';
+            table.style.borderTop = '2px solid #333';
+            table.style.borderBottom = '2px solid #333';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = 'none';
+                    table.rows[r].cells[c].style.borderBottom = 'none';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.borderBottom = '1px solid #333';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'soft') {
+            table.style.border = 'none';
+            table.style.borderRadius = '10px';
+            table.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = 'none';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #f0f0f0';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#f5f7f9';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.color = 'var(--pub-dark)';
+                    }
+                }
+            }
+        } else if (type === 'accent') {
+            table.style.border = '1px solid var(--pub-color)';
+            table.style.borderRadius = '4px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid var(--pub-color)';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid var(--pub-color)';
+                    if (c === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = 'var(--pub-color)';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'dark') {
+            table.style.border = '1px solid #444';
+            table.style.borderRadius = '8px';
+            table.style.backgroundColor = '#222';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #444';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #444';
+                    table.rows[r].cells[c].style.color = '#ddd';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#111';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    } else if (r % 2 === 1) {
+                        table.rows[r].cells[c].style.backgroundColor = '#2a2a2a';
+                    }
+                }
+            }
+        } else if (type === 'bordered') {
+            table.style.border = '3px solid var(--pub-color)';
+            table.style.borderRadius = '12px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px dashed var(--pub-color)';
+                    table.rows[r].cells[c].style.borderBottom = '1px dashed var(--pub-color)';
+                    table.rows[r].cells[c].style.color = 'var(--pub-dark)';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = 'rgba(0, 118, 112, 0.1)';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'elegant') {
+            table.style.border = '1px solid #d4c4b7';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #efeae6';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #efeae6';
+                    table.rows[r].cells[c].style.color = '#4a4036';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#f4f0ec';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.borderBottom = '2px solid #d4c4b7';
+                    }
+                }
+            }
+        } else if (type === 'highlight') {
+            table.style.border = 'none';
+            table.style.borderRadius = '0px';
+            table.style.borderTop = '1px solid #ccc';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = 'none';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #eee';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.borderBottom = '3px solid var(--pub-color)';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.color = 'var(--pub-dark)';
+                    }
+                }
+            }
+        } else if (type === 'ocean') {
+            table.style.border = '1px solid #1E3A8A';
+            table.style.borderRadius = '8px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #93C5FD';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #93C5FD';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#1E3A8A';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    } else if (r % 2 === 1) {
+                        table.rows[r].cells[c].style.backgroundColor = '#EFF6FF';
+                    }
+                }
+            }
+        } else if (type === 'sunset') {
+            table.style.border = '2px solid #EA580C';
+            table.style.borderRadius = '6px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #FDBA74';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #FDBA74';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#EA580C';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    } else if (r % 2 === 1) {
+                        table.rows[r].cells[c].style.backgroundColor = '#FFF7ED';
+                    }
+                }
+            }
+        } else if (type === 'corporate') {
+            table.style.border = '1px solid #1F2937';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #E5E7EB';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #E5E7EB';
+                    table.rows[r].cells[c].style.color = '#111827';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#F3F4F6';
+                        table.rows[r].cells[c].style.color = '#1F2937';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.borderBottom = '2px solid #1F2937';
+                    }
+                }
+            }
+        } else if (type === 'monochrome') {
+            table.style.border = '4px solid #000';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '2px solid #000';
+                    table.rows[r].cells[c].style.borderBottom = '2px solid #000';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#000';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = '900';
+                    }
+                }
+            }
+        } else if (type === 'neon') {
+            table.style.border = '2px solid #39FF14';
+            table.style.borderRadius = '4px';
+            table.style.backgroundColor = '#000';
+            table.style.boxShadow = '0 0 10px #39FF14';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #1F8A0B';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #1F8A0B';
+                    table.rows[r].cells[c].style.color = '#39FF14';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#111';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.borderBottom = '2px solid #39FF14';
+                    }
+                }
+            }
+        } else if (type === 'pastel') {
+            table.style.border = 'none';
+            table.style.borderRadius = '12px';
+            table.style.backgroundColor = '#F5F3FF';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '2px solid #fff';
+                    table.rows[r].cells[c].style.borderBottom = '2px solid #fff';
+                    table.rows[r].cells[c].style.color = '#5B21B6';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#DDD6FE';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'ledger') {
+            table.style.border = '1px solid #ccc';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #eee';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #eee';
+                    table.rows[r].cells[c].style.color = '#333';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.borderBottom = '3px double #000';
+                    } else if (r % 2 === 1) {
+                        table.rows[r].cells[c].style.backgroundColor = '#ECFDF5';
+                    }
+                }
+            }
+        } else if (type === 'transparent') {
+            table.style.border = 'none';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = 'none';
+                    table.rows[r].cells[c].style.borderBottom = 'none';
+                }
+            }
+        } else if (type === 'forest') {
+            table.style.border = '1px solid #166534';
+            table.style.borderRadius = '8px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #86EFAC';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #86EFAC';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#166534';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    } else if (r % 2 === 1) {
+                        table.rows[r].cells[c].style.backgroundColor = '#F0FDF4';
+                    }
+                }
+            }
+        } else if (type === 'ruby') {
+            table.style.border = '3px double #991B1B';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #FECACA';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #FECACA';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#991B1B';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'gold') {
+            table.style.border = '2px solid #B45309';
+            table.style.borderRadius = '0px';
+            table.style.backgroundColor = '#FEF3C7';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #D97706';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #D97706';
+                    table.rows[r].cells[c].style.color = '#78350F';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#F59E0B';
+                        table.rows[r].cells[c].style.color = '#fff';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'hacker') {
+            table.style.border = '1px solid #06B6D4';
+            table.style.borderRadius = '0px';
+            table.style.backgroundColor = '#111827';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #0891B2';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #0891B2';
+                    table.rows[r].cells[c].style.color = '#22D3EE';
+                    table.rows[r].cells[c].style.fontFamily = 'monospace';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.borderBottom = '2px solid #06B6D4';
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.color = '#67E8F9';
+                    }
+                }
+            }
+        } else if (type === 'checker') {
+            table.style.border = '2px solid #000';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px solid #000';
+                    table.rows[r].cells[c].style.borderBottom = '1px solid #000';
+                    if ((r + c) % 2 === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#eee';
+                    } else {
+                        table.rows[r].cells[c].style.backgroundColor = '#fff';
+                    }
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                    }
+                }
+            }
+        } else if (type === 'blueprint') {
+            table.style.border = '2px solid #fff';
+            table.style.borderRadius = '0px';
+            table.style.backgroundColor = '#1D4ED8';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px dashed #fff';
+                    table.rows[r].cells[c].style.borderBottom = '1px dashed #fff';
+                    table.rows[r].cells[c].style.color = '#fff';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.borderBottom = '2px solid #fff';
+                    }
+                }
+            }
+        } else if (type === 'comic') {
+            table.style.border = '4px solid #000';
+            table.style.borderRadius = '12px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '2px solid #000';
+                    table.rows[r].cells[c].style.borderBottom = '2px solid #000';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.backgroundColor = '#FDE047';
+                        table.rows[r].cells[c].style.fontWeight = '900';
+                        table.rows[r].cells[c].style.borderBottom = '4px solid #000';
+                    }
+                }
+            }
+        } else if (type === 'dotted') {
+            table.style.border = '2px dotted #9CA3AF';
+            table.style.borderRadius = '0px';
+            for(let r=0; r<table.rows.length; r++) {
+                for(let c=0; c<table.rows[r].cells.length; c++) {
+                    table.rows[r].cells[c].style.borderRight = '1px dotted #9CA3AF';
+                    table.rows[r].cells[c].style.borderBottom = '1px dotted #9CA3AF';
+                    if (r === 0) {
+                        table.rows[r].cells[c].style.fontWeight = 'bold';
+                        table.rows[r].cells[c].style.borderBottom = '2px dotted #9CA3AF';
+                    }
+                }
+            }
+        }
+        
+        pushHistory();
+    };
+
     // 2. OVERWRITE THE RIBBON UI HTML
     const checkRibbons = setInterval(() => {
         const designTab = document.getElementById('ribbon-table-design');
@@ -12918,30 +13357,250 @@ window.handleMouseUp = function() {
                     <div style="display:flex; flex-direction:column; padding: 2px; justify-content:center; gap:6px; height:100%;">
                         <div style="display:flex; align-items:center; gap:4px; font-size:11px;">
                             <i class="fas fa-border-all" style="color:#666; width:14px; text-align:center;"></i>
-                            <input type="number" id="ctx-tbl-border" value="1" min="0" max="10" style="width:45px; height:20px; font-size:11px; padding-left:4px; border:1px solid #ccc; border-radius:2px;" onchange="ContextRibbonActions.applyBorderThickness(this.value)"> px
+                            <div class="modern-spinner" style="width: 54px;">
+                                <input type="text" id="ctx-tbl-border" value="1" onchange="ContextRibbonActions.applyBorderThickness(this.value)">
+                                <div class="spin-btns">
+                                    <div onclick="document.getElementById('ctx-tbl-border').value=Math.min(10, parseInt(document.getElementById('ctx-tbl-border').value)+1); ContextRibbonActions.applyBorderThickness(document.getElementById('ctx-tbl-border').value)"><i class="fas fa-chevron-up"></i></div>
+                                    <div onclick="document.getElementById('ctx-tbl-border').value=Math.max(0, parseInt(document.getElementById('ctx-tbl-border').value)-1); ContextRibbonActions.applyBorderThickness(document.getElementById('ctx-tbl-border').value)"><i class="fas fa-chevron-down"></i></div>
+                                </div>
+                            </div>
+                            px
                         </div>
-                        <div style="display:flex; align-items:center; gap:4px; font-size:11px; position:relative;">
+                        <div style="display:flex; align-items:center; gap:4px; font-size:11px;">
                             <i class="fas fa-palette" style="color:#666; width:14px; text-align:center;"></i>
-                            <div style="width:45px; height:20px; border:1px solid #ccc; border-radius:2px; background:#000000;" id="ctx-tbl-border-color-disp"></div>
-                            <input type="color" value="#000000" style="position:absolute; right:0; width:45px; height:20px; opacity:0; cursor:pointer;" onchange="ContextRibbonActions.tableBorderColor(this.value); document.getElementById('ctx-tbl-border-color-disp').style.background=this.value;"> 
+                            <input type="color" class="modern-color-picker" value="#000000" style="width: 54px; height: 22px;" onchange="ContextRibbonActions.tableBorderColor(this.value)"> 
                             Color
                         </div>
                     </div>
                     <div class="group-label">Borders</div>
                 </div>
                 <div class="group">
-                    <div style="display:flex; flex-direction:column; padding: 2px; justify-content:center; height:100%;">
-                        <select class="ribbon-input" onchange="ContextRibbonActions.cellPadding(this.value)" style="width:90px;">
-                            <option value="">Cell Margins</option>
-                            <option value="2px">Tight</option>
-                            <option value="6px">Normal</option>
-                            <option value="12px">Relaxed</option>
-                        </select>
+                    <div style="display:flex; flex-direction:column; padding: 2px; justify-content:center; align-items:center; height:100%;">
+                        <span style="font-size:10px; color:var(--pub-dark); margin-bottom:4px; font-weight:bold;">Cell margins</span>
+                        <div class="modern-select" id="ctx-margin-btn" style="position: relative; width: 85px;" onclick="
+                            const m = document.getElementById('ctx-margin-dropdown');
+                            if(m.style.display === 'block') {
+                                m.style.display = 'none';
+                            } else {
+                                document.querySelectorAll('.custom-dropdown').forEach(d => d.style.display = 'none');
+                                const rect = this.getBoundingClientRect();
+                                m.style.left = rect.left + 'px';
+                                m.style.top = (rect.bottom + 2) + 'px';
+                                m.style.display = 'block';
+                            }
+                            event.stopPropagation();
+                        ">
+                            <span id="ctx-margin-label" style="font-size: 11px;">Default</span>
+                            <div class="arrow-box"><i class="fas fa-chevron-down" style="font-size:10px;"></i></div>
+                        </div>
                     </div>
                     <div class="group-label">Spacing</div>
                 </div>
                 ${arrGroup}
+                <div class="group" style="padding-right: 12px;">
+                    <div style="display:grid; grid-template-columns: repeat(12, 1fr); gap: 4px; padding: 2px 4px; height:100%; align-content: center;">
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('modern')" title="Modern Teal Header">
+                            <div style="width:24px; height:18px; border-radius:4px; border:1px solid #aaa; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:var(--pub-color); display:flex;"><div style="flex:1;border-right:1px solid #aaa;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#f9f9f9; border-top:1px solid #aaa; display:flex;"><div style="flex:1;border-right:1px solid #aaa;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #aaa; display:flex;"><div style="flex:1;border-right:1px solid #aaa;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('minimal')" title="Minimalist Lines">
+                            <div style="width:24px; height:18px; border-radius:0px; border:none; border-top:2px solid #000; border-bottom:2px solid #000; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#fff; border-bottom:1px solid #000;"></div>
+                                <div style="flex:1; background:#fff;"></div>
+                                <div style="flex:1; background:#fff;"></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('soft')" title="Soft Gray Header">
+                            <div style="width:24px; height:18px; border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.15); overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#e0e0e0; display:flex;"><div style="flex:1;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #eee;"></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #eee;"></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('accent')" title="Teal Accent Column">
+                            <div style="width:24px; height:18px; border-radius:3px; border:1px solid var(--pub-color); overflow:hidden; display:flex;">
+                                <div style="width:30%; background:var(--pub-color); border-right:1px solid var(--pub-color);"></div>
+                                <div style="flex:1; background:#fff; display:flex; flex-direction:column;">
+                                    <div style="flex:1; border-bottom:1px solid var(--pub-color);"></div>
+                                    <div style="flex:1; border-bottom:1px solid var(--pub-color);"></div>
+                                    <div style="flex:1;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('dark')" title="Dark Mode">
+                            <div style="width:24px; height:18px; border-radius:4px; border:1px solid #444; background:#222; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#111; display:flex;"><div style="flex:1;border-right:1px solid #444;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#2a2a2a; border-top:1px solid #444; display:flex;"><div style="flex:1;border-right:1px solid #444;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#222; border-top:1px solid #444; display:flex;"><div style="flex:1;border-right:1px solid #444;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('bordered')" title="Teal Grid Outline">
+                            <div style="width:24px; height:18px; border-radius:4px; border:2px solid var(--pub-color); overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:rgba(0,118,112,0.1); display:flex;"><div style="flex:1;border-right:1px dashed var(--pub-color);"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px dashed var(--pub-color); display:flex;"><div style="flex:1;border-right:1px dashed var(--pub-color);"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px dashed var(--pub-color); display:flex;"><div style="flex:1;border-right:1px dashed var(--pub-color);"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('elegant')" title="Elegant Gold/Cream">
+                            <div style="width:24px; height:18px; border-radius:0px; border:1px solid #d4c4b7; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#f4f0ec; border-bottom:2px solid #d4c4b7; display:flex;"><div style="flex:1;border-right:1px solid #efeae6;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; display:flex;"><div style="flex:1;border-right:1px solid #efeae6;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #efeae6; display:flex;"><div style="flex:1;border-right:1px solid #efeae6;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('highlight')" title="Teal Highlight">
+                            <div style="width:24px; height:18px; border-radius:0px; border:none; border-top:1px solid #ccc; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#fff; border-bottom:2px solid var(--pub-color);"></div>
+                                <div style="flex:1; background:#fff; border-bottom:1px solid #eee;"></div>
+                                <div style="flex:1; background:#fff;"></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('ocean')" title="Ocean Blue">
+                            <div style="width:24px; height:18px; border-radius:4px; border:1px solid #1E3A8A; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#1E3A8A; display:flex;"><div style="flex:1;border-right:1px solid #1E3A8A;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#EFF6FF; border-top:1px solid #93C5FD; display:flex;"><div style="flex:1;border-right:1px solid #93C5FD;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #93C5FD; display:flex;"><div style="flex:1;border-right:1px solid #93C5FD;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('sunset')" title="Sunset Orange">
+                            <div style="width:24px; height:18px; border-radius:4px; border:1px solid #EA580C; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#EA580C; display:flex;"><div style="flex:1;border-right:1px solid #EA580C;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#FFF7ED; border-top:1px solid #FDBA74; display:flex;"><div style="flex:1;border-right:1px solid #FDBA74;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #FDBA74; display:flex;"><div style="flex:1;border-right:1px solid #FDBA74;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('corporate')" title="Corporate Gray">
+                            <div style="width:24px; height:18px; border-radius:0px; border:1px solid #1F2937; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#F3F4F6; border-bottom:1px solid #1F2937; display:flex;"><div style="flex:1;border-right:1px solid #E5E7EB;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; display:flex;"><div style="flex:1;border-right:1px solid #E5E7EB;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #E5E7EB; display:flex;"><div style="flex:1;border-right:1px solid #E5E7EB;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('monochrome')" title="Monochrome">
+                            <div style="width:24px; height:18px; border-radius:0px; border:2px solid #000; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#000; display:flex;"><div style="flex:1;border-right:1px solid #000;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #000; display:flex;"><div style="flex:1;border-right:1px solid #000;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #000; display:flex;"><div style="flex:1;border-right:1px solid #000;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('neon')" title="Neon Hacker">
+                            <div style="width:24px; height:18px; border-radius:3px; border:1px solid #39FF14; background:#000; box-shadow:0 0 3px #39FF14; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#111; border-bottom:1px solid #39FF14; display:flex;"><div style="flex:1;border-right:1px solid #1F8A0B;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#000; display:flex;"><div style="flex:1;border-right:1px solid #1F8A0B;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#000; border-top:1px solid #1F8A0B; display:flex;"><div style="flex:1;border-right:1px solid #1F8A0B;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('pastel')" title="Pastel Lavender">
+                            <div style="width:24px; height:18px; border-radius:4px; background:#F5F3FF; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#DDD6FE; display:flex;"><div style="flex:1;border-right:1px solid #fff;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; border-top:1px solid #fff; display:flex;"><div style="flex:1;border-right:1px solid #fff;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; border-top:1px solid #fff; display:flex;"><div style="flex:1;border-right:1px solid #fff;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('ledger')" title="Ledger">
+                            <div style="width:24px; height:18px; border-radius:0px; border:1px solid #ccc; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#fff; border-bottom:2px double #000; display:flex;"><div style="flex:1;border-right:1px solid #eee;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#ECFDF5; display:flex;"><div style="flex:1;border-right:1px solid #eee;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #eee; display:flex;"><div style="flex:1;border-right:1px solid #eee;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('transparent')" title="Transparent Gridlines">
+                            <div style="width:24px; height:18px; border-radius:0px; border:1px dashed #ccc; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; display:flex;"><div style="flex:1;border-right:1px dashed #eee;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; border-top:1px dashed #eee; display:flex;"><div style="flex:1;border-right:1px dashed #eee;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; border-top:1px dashed #eee; display:flex;"><div style="flex:1;border-right:1px dashed #eee;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('forest')" title="Forest Green">
+                            <div style="width:24px; height:18px; border-radius:4px; border:1px solid #166534; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#166534; display:flex;"><div style="flex:1;border-right:1px solid #166534;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#F0FDF4; border-top:1px solid #86EFAC; display:flex;"><div style="flex:1;border-right:1px solid #86EFAC;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #86EFAC; display:flex;"><div style="flex:1;border-right:1px solid #86EFAC;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('ruby')" title="Ruby Red">
+                            <div style="width:24px; height:18px; border-radius:0px; border:3px double #991B1B; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#991B1B; display:flex;"><div style="flex:1;border-right:1px solid #FECACA;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #FECACA; display:flex;"><div style="flex:1;border-right:1px solid #FECACA;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:1px solid #FECACA; display:flex;"><div style="flex:1;border-right:1px solid #FECACA;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('gold')" title="Gold">
+                            <div style="width:24px; height:18px; border-radius:0px; border:2px solid #B45309; background:#FEF3C7; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#F59E0B; display:flex;"><div style="flex:1;border-right:1px solid #D97706;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#FEF3C7; border-top:1px solid #D97706; display:flex;"><div style="flex:1;border-right:1px solid #D97706;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#FEF3C7; border-top:1px solid #D97706; display:flex;"><div style="flex:1;border-right:1px solid #D97706;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('hacker')" title="Cyber Hacker">
+                            <div style="width:24px; height:18px; border-radius:0px; border:1px solid #06B6D4; background:#111827; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#111827; border-bottom:2px solid #06B6D4; display:flex;"><div style="flex:1;border-right:1px solid #0891B2;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#111827; display:flex;"><div style="flex:1;border-right:1px solid #0891B2;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#111827; border-top:1px solid #0891B2; display:flex;"><div style="flex:1;border-right:1px solid #0891B2;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('checker')" title="Checkerboard">
+                            <div style="width:24px; height:18px; border-radius:0px; border:2px solid #000; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; display:flex;"><div style="flex:1;background:#eee;border-right:1px solid #000;"></div><div style="flex:1;background:#fff;"></div></div>
+                                <div style="flex:1; border-top:1px solid #000; display:flex;"><div style="flex:1;background:#fff;border-right:1px solid #000;"></div><div style="flex:1;background:#eee;"></div></div>
+                                <div style="flex:1; border-top:1px solid #000; display:flex;"><div style="flex:1;background:#eee;border-right:1px solid #000;"></div><div style="flex:1;background:#fff;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('blueprint')" title="Blueprint">
+                            <div style="width:24px; height:18px; border-radius:0px; border:2px solid #fff; background:#1D4ED8; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; border-bottom:2px solid #fff; display:flex;"><div style="flex:1;border-right:1px dashed #fff;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; display:flex;"><div style="flex:1;border-right:1px dashed #fff;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; border-top:1px dashed #fff; display:flex;"><div style="flex:1;border-right:1px dashed #fff;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('comic')" title="Comic Book">
+                            <div style="width:24px; height:18px; border-radius:4px; border:3px solid #000; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; background:#FDE047; border-bottom:3px solid #000; display:flex;"><div style="flex:1;border-right:2px solid #000;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; display:flex;"><div style="flex:1;border-right:2px solid #000;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; background:#fff; border-top:2px solid #000; display:flex;"><div style="flex:1;border-right:2px solid #000;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                        <div class="template-btn" onclick="ContextRibbonActions.applyTemplate('dotted')" title="Dotted Outline">
+                            <div style="width:24px; height:18px; border-radius:0px; border:2px dotted #9CA3AF; overflow:hidden; display:flex; flex-direction:column;">
+                                <div style="flex:1; border-bottom:2px dotted #9CA3AF; display:flex;"><div style="flex:1;border-right:1px dotted #9CA3AF;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; display:flex;"><div style="flex:1;border-right:1px dotted #9CA3AF;"></div><div style="flex:1;"></div></div>
+                                <div style="flex:1; border-top:1px dotted #9CA3AF; display:flex;"><div style="flex:1;border-right:1px dotted #9CA3AF;"></div><div style="flex:1;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                        .template-btn { cursor:pointer; padding:3px; border:1px solid transparent; border-radius:4px; transition:all 0.1s; display: flex; align-items: center; justify-content: center; background:#fff; }
+                        .template-btn:hover { background:rgba(0,118,112,0.1); border-color:var(--pub-color); transform:scale(1.1); box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+                    </style>
+                    <div class="group-label">Templates</div>
+                </div>
             `;
+            
+            if(!document.getElementById('ctx-margin-dropdown')) {
+                const drop = document.createElement('div');
+                drop.id = 'ctx-margin-dropdown';
+                drop.className = 'custom-dropdown';
+                drop.style.width = '95px';
+                drop.innerHTML = `
+                    <style>
+                        #ctx-margin-dropdown { border-radius: 6px; overflow: hidden; border: 1px solid var(--pub-color); box-shadow: 0 4px 12px rgba(0, 118, 112, 0.15); padding: 2px; }
+                        .margin-item { padding: 6px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 6px; border-radius: 4px; transition: all 0.1s; margin-bottom: 2px; }
+                        .margin-item:last-child { margin-bottom: 0; }
+                        .margin-item:hover { background: rgba(0, 118, 112, 0.1); color: var(--pub-dark); }
+                        .margin-item i { color: #666; width: 12px; text-align: center; }
+                        .margin-item:hover i { color: var(--pub-dark); }
+                    </style>
+                    <div class="margin-item" onclick="document.getElementById('ctx-margin-label').innerText='Tight'; ContextRibbonActions.cellPadding('2px'); this.parentElement.style.display='none';"><i class="fas fa-compress"></i> Tight</div>
+                    <div class="margin-item" onclick="document.getElementById('ctx-margin-label').innerText='Normal'; ContextRibbonActions.cellPadding('6px'); this.parentElement.style.display='none';"><i class="fas fa-grip-lines"></i> Normal</div>
+                    <div class="margin-item" onclick="document.getElementById('ctx-margin-label').innerText='Relaxed'; ContextRibbonActions.cellPadding('12px'); this.parentElement.style.display='none';"><i class="fas fa-expand"></i> Relaxed</div>
+                    <div class="margin-item" onclick="document.getElementById('ctx-margin-label').innerText='Default'; ContextRibbonActions.cellPadding(''); this.parentElement.style.display='none';"><i class="fas fa-eraser"></i> Default</div>
+                `;
+                document.body.appendChild(drop);
+            }
+            
             
             console.log("✅ Table Ribbons successfully refactored with new layout groups.");
         }
