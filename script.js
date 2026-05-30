@@ -3744,12 +3744,12 @@ window.applySnapping = function(x, y, elW, elH, el, e) {
     let resX = x; let resY = y;
     
     let sgY = document.getElementById('smart-guide-y');
-    if(!sgY) { sgY = document.createElement('div'); sgY.id='smart-guide-y'; sgY.style.cssText='position:absolute; width:1px; height:100%; background:#007670; top:0; left:0; z-index:9999; display:none; pointer-events:none;'; document.getElementById('paper').appendChild(sgY); }
+    if(!sgY) { sgY = document.createElement('div'); sgY.id='smart-guide-y'; sgY.style.cssText='position:absolute; width:1px; height:100%; background:rgba(0,118,112,0.7); top:0; left:0; z-index:9999; opacity:0; pointer-events:none; transition: opacity 0.15s ease-out;'; document.getElementById('paper').appendChild(sgY); }
     let sgX = document.getElementById('smart-guide-x');
-    if(!sgX) { sgX = document.createElement('div'); sgX.id='smart-guide-x'; sgX.style.cssText='position:absolute; width:100%; height:1px; background:#007670; left:0; top:0; z-index:9999; display:none; pointer-events:none;'; document.getElementById('paper').appendChild(sgX); }
+    if(!sgX) { sgX = document.createElement('div'); sgX.id='smart-guide-x'; sgX.style.cssText='position:absolute; width:100%; height:1px; background:rgba(0,118,112,0.7); left:0; top:0; z-index:9999; opacity:0; pointer-events:none; transition: opacity 0.15s ease-out;'; document.getElementById('paper').appendChild(sgX); }
     
-    sgY.style.display = 'none';
-    sgX.style.display = 'none';
+    sgY.style.opacity = '0';
+    sgX.style.opacity = '0';
 
     if (state.snap.grid) {
         const tol = 15;
@@ -3805,8 +3805,8 @@ window.applySnapping = function(x, y, elW, elH, el, e) {
         if (snappedObjY) snappedToGuideY = true;
     }
     
-    if (snappedToGuideX) sgY.style.display = 'block';
-    if (snappedToGuideY) sgX.style.display = 'block';
+    if (snappedToGuideX) sgY.style.opacity = '1';
+    if (snappedToGuideY) sgX.style.opacity = '1';
 
     return { x: resX, y: resY };
 };
@@ -3814,8 +3814,8 @@ window.applySnapping = function(x, y, elW, elH, el, e) {
 document.addEventListener('mouseup', () => {
     const sgX = document.getElementById('smart-guide-x');
     const sgY = document.getElementById('smart-guide-y');
-    if (sgX) sgX.style.display = 'none';
-    if (sgY) sgY.style.display = 'none';
+    if (sgX) sgX.style.opacity = '0';
+    if (sgY) sgY.style.opacity = '0';
 });
 
 window.toggleSnapOption = function(option, btn) {
