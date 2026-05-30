@@ -2671,19 +2671,32 @@ function showFloatToolbar() {
     const rect = state.selectedEl.getBoundingClientRect();
     activeToolbar.style.display = 'flex';
     
-    let top = rect.top - 80; 
-    let left = rect.left;
-    
-    if (activeToolbar === waToolbar) top -= 20;
-    
-    if(top < 10) top = rect.bottom + 20; 
-    if(left < 10) left = 10;
-    
-    activeToolbar.style.top = top + 'px';
-    activeToolbar.style.left = left + 'px';
-    
     if (activeToolbar === floatToolbar) {
+        if (window._globalFloatPos) {
+            activeToolbar.style.bottom = 'auto';
+            activeToolbar.style.transform = 'none';
+            activeToolbar.style.top = window._globalFloatPos.top + 'px';
+            activeToolbar.style.left = window._globalFloatPos.left + 'px';
+        } else {
+            // Dock the text toolbar at the bottom center by default
+            activeToolbar.style.top = 'auto';
+            activeToolbar.style.bottom = '30px';
+            activeToolbar.style.left = '50%';
+            activeToolbar.style.transform = 'translateX(-50%)';
+        }
         updateFloatToolbarValues();
+    } else {
+        // Position the WordArt toolbar near the object
+        let top = rect.top - 80; 
+        let left = rect.left;
+        if (activeToolbar === waToolbar) top -= 20;
+        if(top < 10) top = rect.bottom + 20; 
+        if(left < 10) left = 10;
+        
+        activeToolbar.style.bottom = 'auto';
+        activeToolbar.style.transform = 'none';
+        activeToolbar.style.top = top + 'px';
+        activeToolbar.style.left = left + 'px';
     }
 }
 
@@ -11888,15 +11901,17 @@ window.handleMouseUp = function() {
             display: none; 
             position: absolute; 
             z-index: 9999;
-            background: #f5f9f7; 
-            border: 1px solid #004d40; 
-            border-radius: 14px; 
-            box-shadow: 0 8px 24px rgba(0, 77, 64, 0.15);
-            padding: 6px; 
+            background: rgba(238, 242, 246, 0.95); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid #1e6b5a; 
+            border-radius: 12px; 
+            box-shadow: 0 15px 45px rgba(0, 20, 10, 0.25), 0 4px 10px rgba(0, 20, 10, 0.1), inset 0 1px 2px rgba(255, 255, 255, 1);
+            padding: 8px 10px; 
             display: flex;
             flex-direction: row;
             align-items: stretch;
-            gap: 6px; 
+            gap: 10px; 
             transition: opacity 0.2s;
             user-select: none;
             width: max-content; 
@@ -11904,16 +11919,20 @@ window.handleMouseUp = function() {
 
         /* Drag Handle */
         .float-drag-grip {
-            width: 24px; 
-            background: #e3efea; 
+            width: 20px; 
+            background: rgba(255, 255, 255, 0.6); 
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.9), 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid rgba(200,210,220,0.5);
             border-radius: 8px; 
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: grab;
             transition: all 0.2s;
+            height: 100%;
+            min-height: 50px;
         }
-        .float-drag-grip:hover { background: #d1e5db; }
+        .float-drag-grip:hover { background: rgba(255, 255, 255, 0.9); }
         .float-drag-grip:active { cursor: grabbing; }
 
         /* Custom Grip Icon */
@@ -11923,128 +11942,214 @@ window.handleMouseUp = function() {
             gap: 3px; 
         }
         .grip-dots span {
-            width: 3.5px;
-            height: 3.5px;
-            background: #8faea2;
+            width: 3px;
+            height: 3px;
+            background: #004d40;
             border-radius: 50%;
+            opacity: 0.6;
         }
 
         /* Tool Layout */
         .float-tools-col {
             display: flex;
             flex-direction: column;
-            gap: 4px; 
+            gap: 6px; 
             justify-content: center;
         }
         .float-tool-row {
             display: flex;
             align-items: center;
-            gap: 2px; 
+            gap: 4px; 
         }
 
         /* Font Family & Size Selectors */
         .float-input-group {
             display: flex;
             align-items: center;
-            height: 28px; 
-            background: transparent !important; 
-            border: 1px solid #c8e1d5; 
+            height: 22px; 
+            background: rgba(255, 255, 255, 0.7) !important; 
+            border: 1px solid rgba(180, 195, 205, 0.5); 
+            box-shadow: inset 0 1px 1px rgba(255,255,255,1), 0 1px 2px rgba(0,0,0,0.03);
             border-radius: 6px;
-            overflow: hidden;
+            position: relative; /* For dropdown absolute positioning */
         }
         .float-font-btn {
-            padding: 0 8px;
-            font-size: 13px; 
+            padding: 0 0 0 8px;
+            font-size: 12px; 
             color: #004d40; 
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
-            width: 110px; 
+            width: 85px; 
             justify-content: space-between;
             height: 100%;
         }
-        .float-font-btn:hover { background: rgba(186, 214, 200, 0.4); }
+        .float-font-btn:hover { background: rgba(255, 255, 255, 0.9); }
         
+        .drop-arrow {
+            background: #1e6b5a;
+            color: white;
+            height: 100%;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+        .drop-arrow i { font-size: 9px; opacity: 0.9; }
+
         .float-size-wrapper {
             position: relative;
             display: flex;
             align-items: center;
             height: 100%;
-            border-left: 1px solid #c8e1d5;
+            margin-left: 4px;
         }
-        .float-size-wrapper i {
+        .float-size-wrapper .drop-arrow {
             position: absolute;
-            right: 6px;
-            font-size: 10px;
-            color: #004d40;
-            pointer-events: none; 
+            right: 0;
+            pointer-events: none;
         }
         
         /* Native Select UI Override */
         .float-size-select {
-            width: 48px; 
+            width: 50px; 
             height: 100%;
             border: none !important;
             box-shadow: none !important;
-            border-radius: 0 !important;
+            border-radius: 6px !important;
             margin: 0 !important;
-            text-align: center;
-            font-size: 13px;
+            text-align: left;
+            padding-left: 8px;
+            font-size: 12px;
             color: #004d40;
-            background-color: transparent !important; 
+            background: rgba(255, 255, 255, 0.4) !important; 
             outline: none !important;
             cursor: pointer;
             appearance: none !important;
             -webkit-appearance: none !important;
             -moz-appearance: none !important;
-            padding-left: 4px;
-            padding-right: 14px; 
         }
         .float-size-select option { background: #ffffff; color: #333333; }
 
         /* Action Buttons */
         .float-mini-btn {
-            width: 28px; 
-            height: 28px; 
+            width: 26px; 
+            height: 26px; 
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
             color: #004d40; 
-            font-size: 14px; 
-            transition: all 0.1s;
+            font-size: 13px; 
+            transition: all 0.15s;
             position: relative;
         }
-        .float-mini-btn:hover { background: #d1e5db; }
-        .float-mini-btn:active { transform: scale(0.95); background: #c0dacc; }
-        .float-mini-btn strong { font-family: 'Times New Roman', serif; font-size: 15px; }
+        .float-mini-btn:hover { background: rgba(255, 255, 255, 0.6); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .float-mini-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.9); }
+        .float-mini-btn strong { font-family: 'Times New Roman', serif; font-size: 14px; }
 
         /* Dividers & Color Pickers */
         .float-divider {
             width: 1px;
-            height: 18px;
-            background: #c8e1d5;
+            height: 16px;
+            background: rgba(0, 77, 64, 0.15);
             margin: 0 2px;
         }
         .float-color-btn {
             flex-direction: column;
             gap: 2px;
-            padding-top: 4px;
+            padding-top: 3px;
         }
         .float-color-bar {
-            width: 16px;
-            height: 3px;
-            border-radius: 2px;
+            width: 14px;
+            height: 2px;
+            border-radius: 1px;
         }
 
         /* Z-Index Arrange Icons */
         .arrange-icon-wrapper { position: relative; display: inline-flex; align-items: center; justify-content: center; }
-        .arrange-arrow { position: absolute; font-size: 9px; background: #f5f9f7; border-radius: 50%; padding: 1px; top: -2px; right: -4px; color: #004d40; transition: background 0.1s; }
-        .float-mini-btn:hover .arrange-arrow { background: #d1e5db; }
+        .arrange-arrow { position: absolute; font-size: 8px; background: rgba(255,255,255,0.8); border-radius: 50%; padding: 1px; top: -3px; right: -4px; color: #004d40; transition: background 0.1s; }
+        .float-mini-btn:hover .arrange-arrow { background: white; }
+
+        /* Custom Dropdown Overrides (White & Teal Green) */
+        .custom-dropdown {
+            background: #ffffff !important;
+            border: 2px solid #1e6b5a !important;
+            border-radius: 8px !important;
+            box-shadow: 0 8px 24px rgba(0, 77, 64, 0.15) !important;
+            padding: 4px !important;
+            margin-top: 4px !important;
+        }
+        .custom-dropdown::-webkit-scrollbar { width: 6px; }
+        .custom-dropdown::-webkit-scrollbar-thumb { background: rgba(30, 107, 90, 0.3); border-radius: 3px; }
+        
+        .font-item {
+            color: #004d40 !important;
+            border-radius: 4px !important;
+            padding: 6px 10px !important;
+            font-size: 13px !important;
+            transition: background 0.1s;
+        }
+        .font-item:hover { background: rgba(30, 107, 90, 0.1) !important; }
+        
+        .float-size-item {
+            color: #004d40;
+            border-radius: 4px;
+            padding: 6px;
+            text-align: center;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .float-size-item:hover { background: rgba(30, 107, 90, 0.1); }
     `;
     document.head.appendChild(style);
+
+    // Custom Size Dropdown Logic
+    window.toggleFloatSizeDropdown = function() {
+        const menu = document.getElementById('float-size-list');
+        const isVisible = menu && menu.style.display === 'block';
+        document.querySelectorAll('.custom-dropdown').forEach(d => d.style.display = 'none');
+        if (!isVisible && menu) {
+            menu.style.display = 'block';
+            menu.style.top = '24px';
+            menu.style.bottom = 'auto';
+            const rect = menu.getBoundingClientRect();
+            if (rect.bottom > window.innerHeight - 10) {
+                menu.style.top = 'auto';
+                menu.style.bottom = '24px';
+            }
+        }
+    };
+
+    // Custom Font Dropdown Logic
+    window.toggleFloatFontDropdown = function() {
+        const menu = document.getElementById('float-font-list');
+        const isVisible = menu && menu.style.display === 'block';
+        document.querySelectorAll('.custom-dropdown').forEach(d => d.style.display = 'none');
+        if (!isVisible && menu) {
+            menu.style.display = 'block';
+            menu.style.top = '28px';
+            menu.style.bottom = 'auto';
+            const rect = menu.getBoundingClientRect();
+            if (rect.bottom > window.innerHeight - 10) {
+                menu.style.top = 'auto';
+                menu.style.bottom = '28px';
+            }
+        }
+    };
+    
+    window.selectFloatSize = function(sizeStr) {
+        const lbl = document.getElementById('float-size-label');
+        if(lbl) lbl.innerText = parseInt(sizeStr);
+        if(typeof setTrueFontSize === 'function') setTrueFontSize(sizeStr);
+        const menu = document.getElementById('float-size-list');
+        if(menu) menu.style.display = 'none';
+    };
 
     // --- 3. UI TEMPLATE INJECTION ---
     floatBar.innerHTML = `
@@ -12059,22 +12164,41 @@ window.handleMouseUp = function() {
         <div class="float-tools-col">
             <div class="float-tool-row">
                 <div class="float-input-group">
-                    <div class="float-font-btn" id="float-font" onclick="toggleCustomDropdown('float'); event.stopPropagation();">
+                    <div class="float-font-btn" id="float-font" onclick="toggleFloatFontDropdown(); event.stopPropagation();">
                         <span id="float-font-label" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Arial</span>
-                        <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+                        <div class="drop-arrow"><i class="fas fa-chevron-down"></i></div>
                     </div>
                     <div class="float-size-wrapper">
-                        <select id="float-size" class="float-size-select" onchange="setTrueFontSize(this.value + 'px')">
-                            <option value="8">8</option><option value="9">9</option>
-                            <option value="10">10</option><option value="11">11</option>
-                            <option value="12">12</option><option value="14">14</option>
-                            <option value="16" selected>16</option><option value="18">18</option>
-                            <option value="20">20</option><option value="24">24</option>
-                            <option value="28">28</option><option value="32">32</option>
-                            <option value="36">36</option><option value="48">48</option>
-                            <option value="72">72</option>
-                        </select>
-                        <i class="fas fa-chevron-down"></i>
+                        <div class="float-font-btn" id="float-size-btn" onclick="toggleFloatSizeDropdown(); event.stopPropagation();" style="width: 60px;">
+                            <span id="float-size-label">16</span>
+                            <div class="drop-arrow"><i class="fas fa-chevron-down"></i></div>
+                        </div>
+                        <div class="custom-dropdown" id="float-size-list" style="display:none; position:absolute; top:24px; left:0; width:60px; z-index:10000;">
+                            <div class="float-size-item" onclick="selectFloatSize('8px'); event.stopPropagation();">8</div>
+                            <div class="float-size-item" onclick="selectFloatSize('9px'); event.stopPropagation();">9</div>
+                            <div class="float-size-item" onclick="selectFloatSize('10px'); event.stopPropagation();">10</div>
+                            <div class="float-size-item" onclick="selectFloatSize('11px'); event.stopPropagation();">11</div>
+                            <div class="float-size-item" onclick="selectFloatSize('12px'); event.stopPropagation();">12</div>
+                            <div class="float-size-item" onclick="selectFloatSize('14px'); event.stopPropagation();">14</div>
+                            <div class="float-size-item" onclick="selectFloatSize('16px'); event.stopPropagation();">16</div>
+                            <div class="float-size-item" onclick="selectFloatSize('18px'); event.stopPropagation();">18</div>
+                            <div class="float-size-item" onclick="selectFloatSize('20px'); event.stopPropagation();">20</div>
+                            <div class="float-size-item" onclick="selectFloatSize('24px'); event.stopPropagation();">24</div>
+                            <div class="float-size-item" onclick="selectFloatSize('28px'); event.stopPropagation();">28</div>
+                            <div class="float-size-item" onclick="selectFloatSize('32px'); event.stopPropagation();">32</div>
+                            <div class="float-size-item" onclick="selectFloatSize('36px'); event.stopPropagation();">36</div>
+                            <div class="float-size-item" onclick="selectFloatSize('48px'); event.stopPropagation();">48</div>
+                            <div class="float-size-item" onclick="selectFloatSize('72px'); event.stopPropagation();">72</div>
+                            <div class="float-size-item" onclick="selectFloatSize('80px'); event.stopPropagation();">80</div>
+                            <div class="float-size-item" onclick="selectFloatSize('96px'); event.stopPropagation();">96</div>
+                            <div class="float-size-item" onclick="selectFloatSize('110px'); event.stopPropagation();">110</div>
+                            <div class="float-size-item" onclick="selectFloatSize('120px'); event.stopPropagation();">120</div>
+                            <div class="float-size-item" onclick="selectFloatSize('130px'); event.stopPropagation();">130</div>
+                            <div class="float-size-item" onclick="selectFloatSize('144px'); event.stopPropagation();">144</div>
+                            <div class="float-size-item" onclick="selectFloatSize('160px'); event.stopPropagation();">160</div>
+                            <div class="float-size-item" onclick="selectFloatSize('200px'); event.stopPropagation();">200</div>
+                            <div class="float-size-item" onclick="selectFloatSize('256px'); event.stopPropagation();">256</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -12089,7 +12213,7 @@ window.handleMouseUp = function() {
                 </div>
 
                 <div class="float-mini-btn float-color-btn" title="Highlight Color">
-                    <i class="fas fa-marker" style="transform: rotate(-15deg); font-size: 12px;"></i>
+                    <i class="fas fa-marker" style="transform: rotate(-15deg); font-size: 13px;"></i>
                     <div class="float-color-bar" id="float-bg-color-bar" style="background: #ffff00;"></div>
                     <input type="color" value="#ffff00" style="position:absolute; inset:0; opacity:0; cursor:pointer;" 
                            onclick="execCmd('hiliteColor', this.value)" 
@@ -12143,7 +12267,14 @@ window.handleMouseUp = function() {
 
     // Restore rescued elements
     if (fontDropdownList) {
-        floatBar.appendChild(fontDropdownList);
+        const fGroup = floatBar.querySelector('.float-input-group');
+        if(fGroup) {
+            fontDropdownList.style.top = '28px';
+            fontDropdownList.style.left = '0px';
+            fGroup.appendChild(fontDropdownList);
+        } else {
+            floatBar.appendChild(fontDropdownList);
+        }
     }
 
     // --- 4. INTERACTION LOGIC: DRAGGING & MEMORY ---
@@ -12158,8 +12289,16 @@ window.handleMouseUp = function() {
             e.preventDefault(); 
             dragStartX = e.clientX;
             dragStartY = e.clientY;
-            initialLeft = floatBar.offsetLeft;
-            initialTop = floatBar.offsetTop;
+            
+            // Convert any transform/bottom based positioning into absolute top/left so drag works smoothly
+            const fbRect = floatBar.getBoundingClientRect();
+            floatBar.style.bottom = 'auto';
+            floatBar.style.transform = 'none';
+            floatBar.style.left = fbRect.left + 'px';
+            floatBar.style.top = fbRect.top + 'px';
+            
+            initialLeft = fbRect.left;
+            initialTop = fbRect.top;
             document.body.style.cursor = 'grabbing';
         });
     }
@@ -12177,16 +12316,12 @@ window.handleMouseUp = function() {
             isDragging = false;
             document.body.style.cursor = 'default';
             
-            // Calculate and store the exact X/Y offset relative to the selected element
-            if (typeof state !== 'undefined' && state.selectedEl) {
-                const rect = state.selectedEl.getBoundingClientRect();
-                const fbRect = floatBar.getBoundingClientRect();
-                
-                window._floatMem.set(state.selectedEl, {
-                    offsetX: fbRect.left - rect.left,
-                    offsetY: fbRect.top - rect.top
-                });
-            }
+            // Store the exact screen coordinates instead of relative to object
+            const fbRect = floatBar.getBoundingClientRect();
+            window._globalFloatPos = {
+                top: fbRect.top,
+                left: fbRect.left
+            };
         }
     });
 
@@ -12203,28 +12338,7 @@ window.handleMouseUp = function() {
         
         window.showFloatToolbar = function() {
             originalShowFloat.apply(this, arguments);
-            
-            if (!state.selectedEl || floatBar.style.display === 'none') return;
-            if (isDragging) return; 
-
-            const rect = state.selectedEl.getBoundingClientRect();
-            
-            // Retrieve stored coordinates, falling back to default clearance if unmapped
-            const mem = window._floatMem.get(state.selectedEl);
-
-            if (mem) {
-                // Restore saved position
-                floatBar.style.left = Math.max(10, rect.left + mem.offsetX) + 'px';
-                floatBar.style.top = Math.max(10, rect.top + mem.offsetY) + 'px';
-            } else {
-                // Apply default clearance
-                let top = rect.top - 115; 
-                let left = rect.left;
-                if(top < 10) top = rect.bottom + 20; 
-                if(left < 10) left = 10;
-                floatBar.style.top = top + 'px';
-                floatBar.style.left = left + 'px';
-            }
+            // We no longer manually position floatBar here because it is docked by default or uses global dragged pos
         };
         window._floatPosPatchedV88 = true;
     }
@@ -12236,8 +12350,8 @@ window.handleMouseUp = function() {
             try { originalUpdateFloatValues.apply(this, arguments); } catch (err) {}
             const ribbonSize = document.getElementById('font-size');
             if (ribbonSize) {
-                const szFloat = document.getElementById('float-size');
-                if (szFloat) szFloat.value = ribbonSize.value;
+                const szFloatLabel = document.getElementById('float-size-label');
+                if (szFloatLabel) szFloatLabel.innerText = ribbonSize.value;
             }
         };
         window._floatUpdatePatchedV88 = true;
